@@ -10,6 +10,7 @@ open Gospel
 module T = Translation
 module Ident = Identifier.Ident
 module Ts = Translated
+module I = Map.Make (Int)
 
 
 let term_printer ?(v = true) _text _global_loc (t : Tterm.term)  =
@@ -113,13 +114,29 @@ let with_pre ~driver ~term_printer pres (value : Translated.value) =
   in
   { value with preconditions }
 
-let with_post ~driver ~term_printer pres (value : Translated.value) =
+(*true if the ident is used as a variable in the term*)
+  (*test the let case, tapp case *)
+
+
+let with_post ~driver ~term_printer (posts : Tterm.term list) (rets: Tast.lb_arg list)
+    (value : Translated.value) =
+  let zip l1 l2 = assert ((List.length l1) = (List.length l2));
+    List.mapi (fun i arg -> (arg, List.nth l2 i)) l1 in
+  let contains_rets (t: Tterm.term) : bool =
+    let fvs = Tterm_helper.t_free_vars t in
+    List.fold_right (fun ret acc ->
+        try (let vs = Tast_helper.vs_of_lb_arg ret in
+             Symbols.Svs.mem vs fvs || acc)
+        with Invalid_argument _ -> acc) rets false in
   let postconditions = List.map (fun t ->
       let txt = term_printer t in
       let loc = t.Tterm.t_loc in
       let translation = term ~driver "post" t in 
-      ({ txt; loc; translation } : Translated.term)) pres
+      ({ txt; loc; translation } : Translated.term)) posts
   in
+  (*add the markings for whether the ensures can be used in next_state*)
+  let marks = List.map (fun t -> not (contains_rets t)) posts in (*true if contains ret, false if not*)
+  let postconditions = zip postconditions marks in 
   { value with postconditions }
 
 
@@ -171,7 +188,8 @@ let with_xposts ~driver (xposts: (Ttypes.xsymbol * (Tterm.pattern * Tterm.term) 
   { value with xpostconditions }
 
 
-let value ~driver ~ghost (vd : Tast.val_description) =
+
+let value ~driver ~ghost (vd : Tast.val_description): Drv.t   =
   let name = vd.vd_name.id_str in
   let loc = vd.vd_loc in
   let register_name = "hoho register name" in
@@ -194,7 +212,7 @@ potentially changes the name of args so as not to clash with anything else in sc
       value
       |> with_checks ~driver spec.sp_checks 
       |> with_pre ~driver ~term_printer spec.sp_pre
-      |> with_post ~driver ~term_printer spec.sp_post
+      |> with_post ~driver ~term_printer spec.sp_post spec.sp_ret
       |> with_xposts ~driver spec.sp_xpost
       (*gospel -> stm does not currently support these
         |> with_consumes spec.sp_cs
@@ -212,8 +230,7 @@ potentially changes the name of args so as not to clash with anything else in sc
       (* the driver function list contains the functions which can be used in later specifications.
          exclusively pure functions. *)
     else driver
-  in
-  Drv.add_translation value_item driver
+  in let driver = Drv.add_translation value_item driver in driver
 
 (*starts with empty driver (from ortac_core.signature)*)
 let signature ~driver s : Drv.t =

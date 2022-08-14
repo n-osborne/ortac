@@ -352,10 +352,9 @@ let with_posts ~driver ~term_printer posts (value : value) =
   let register_name = evar value.register_name in
   let violated term = F.violated `Post ~term ~register_name in
   let nonexec term exn = F.spec_failure `Post ~term ~exn ~register_name in
-  let postconditions =
-    conditions ~driver ~term_printer violated nonexec posts
-  in
-  { value with postconditions }
+  let postconditions = conditions ~driver ~term_printer violated nonexec posts
+                       |> List.map (fun x -> (x, true))
+  in { value with postconditions }
 
 let with_constant_checks ~driver ~term_printer checks (constant : constant) =
   let register_name = evar constant.register_name in

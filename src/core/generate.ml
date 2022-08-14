@@ -169,7 +169,7 @@ let value (v : Translated.value) =
     @@ compute_checks v.checks
     @@ report
     @@ pexp_let Nonrecursive [ value_binding ~pat:pret ~expr:try_call ]
-    @@ terms v.postconditions
+    @@ terms (List.map fst v.postconditions)
     @@ checks ~register_name true v.checks
     @@ vars_invariants ~register_name "Post" true v.arguments
     @@ vars_invariants ~register_name "Post" false v.returns

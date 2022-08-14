@@ -143,22 +143,33 @@ let get_lhs exp = Option.map fst (get_sides exp)
 let get_rhs_exn exp = exp |> get_sides |> Option.get |> snd 
 
 
-let get_field_rhs ?(error = "Unknown") (equations: term list) (field: string)
-    (prefix: string) : int * expression  =
-  let field = Printf.sprintf "%s.%s" prefix field in
-  ( match List.find_opt (fun (_, (term : term)) ->
-        match term.translation with
-          Ok exp ->
-          (get_lhs exp = Some field)
-        | _ -> false 
-      ) (enum equations) with (*found a term which sets the field name equal to something*)
-      Some (i, term) -> (i, (term.translation |> Result.get_ok |> get_rhs_exn))
-    | None ->
-      raise (Failure (Printf.sprintf "field %s undefined in %s" field error)))
 
-let make_next 
+let make_state ?(init_state = false)
     (cmd_item: Translated.value) (state: state) (prefix: string) (used : bool I.t) :
   expression S.t * bool I.t =
+  (*the bool for each equation is whether that equation can be used in make_next
+  *)
+  let get_field_rhs ?(error = "Unknown") (equations: (term * bool) list) (field: string)
+      (prefix: string) : int * expression  =
+    let field = Printf.sprintf "%s.%s" prefix field in
+    ( match List.find_opt (fun (_, ((term : term), usable)) ->
+          match term.translation with
+            Ok exp -> (get_lhs exp = Some field) && (usable || init_state)
+          | _ -> false 
+        ) (enum equations) with (*found a term which sets the field name equal to something*)
+        Some (i, (term, _)) -> (i, (term.translation |> Result.get_ok |> get_rhs_exn))
+      | None ->
+        (match List.find_opt (fun ((term : term), _) ->
+              match term.translation with
+                Ok exp -> (get_lhs exp = Some field)
+              | _ -> false 
+            ) equations with
+          | None -> raise (Failure (Printf.sprintf "field %s undefined in %s" field error))
+          | Some  (t, _) -> Printf.eprintf "Error: field %s undefined in %s\n(Postcondition %s cannot be used because it refers to the return value, which cannot define the state)\n%!"
+                              field error t.txt
+            ;
+            raise (Failure "undefined field")
+        )) in
   S.fold 
     (fun field _ (next_state, used) -> 
        if cmd_item.pure then 
@@ -178,7 +189,7 @@ let mk_used_posts posts = List.fold_right (fun i acc -> I.add i false acc)
 let init_state (items: Translated.structure_item list) (state: state)  : init_state =
   match find_value items "Init_sut" with
     Some cmd_item -> assert (List.length cmd_item.returns = 1);
-    make_next 
+    make_state ~init_state:true
       cmd_item state (List.hd cmd_item.returns).name (mk_used_posts cmd_item.postconditions)
     |> fst
   | None -> raise (Failure "init_sut undefined; could not initialize")
@@ -205,7 +216,7 @@ let next_state items (cmds: cmd) state : next_state * ((bool I.t) S.t)=
       let (used_post : bool I.t) = mk_used_posts cmd_item.postconditions in
       (*initialize them all to false as all of the ensures for this cmd are initially unused*)
       let (next, used_post)  =
-        make_next cmd_item state cmd_ele.targ_name used_post in
+        make_state cmd_item state cmd_ele.targ_name used_post in
       ({pres; next}, used_post))
       cmds in
   unzip zipped 
@@ -233,7 +244,7 @@ let postcond items (cmds : cmd) (used: (bool I.t) S.t) : postcond =
                                   translation = Result.get_ok xpost.translation}) cmd_item.xpostconditions)
        in
        let ensures  = let used = S.find cmd used in
-         List.filter_map (fun (i, (t: term)) -> if (not (I.find i used))
+         List.filter_map (fun (i, ((t: term), _)) -> if (not (I.find i used))
                            then Some (t.translation |> Result.get_ok)
                            else None) (enum cmd_item.postconditions) in
        let out : postcond_case = {checks; raises; ensures } in
@@ -242,7 +253,7 @@ let postcond items (cmds : cmd) (used: (bool I.t) S.t) : postcond =
     cmds 
 
 
-let stm (driver : Drv.t) : Ast3.stm  =
+let stm (driver : Drv.t)  : Ast3.stm  =
   let capitalize items = List.map (fun item ->
       match item with
       Value v -> Value {v with name = String.capitalize_ascii v.name}
