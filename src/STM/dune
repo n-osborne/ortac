@@ -1,0 +1,8 @@
+(library
+ (name ortac_STM)
+ (preprocess
+  (pps ppxlib.metaquot))
+ (package ortac)
+ (libraries fmt gospel ppxlib ppxlib.ast 
+	ppxlib.astlib
+ortac_core))
