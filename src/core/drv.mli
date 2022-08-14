@@ -3,7 +3,9 @@ open Gospel
 type t
 
 val init : string -> Tmodule.namespace -> t
+val init_stm : string -> Tmodule.namespace -> t
 val module_name : t -> string
+val translations : t -> Translated.structure_item list
 val translate_stdlib : Symbols.lsymbol -> t -> string option
 val get_ls : t -> string list -> Symbols.lsymbol
 val get_ts : t -> string list -> Ttypes.tysymbol

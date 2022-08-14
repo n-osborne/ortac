@@ -27,10 +27,11 @@ type invariant = {
 
 type type_ = {
   name : string;
+  args : type_ list;
   loc : Location.t;
   mutable_ : mutability;
   ghost : Gospel.Tast.ghost;
-  models : (string * bool) list;
+  models : (string * type_) list;
   invariants : invariant list;
   equality : (expression, W.t) result;
   comparison : (expression, W.t) result;
@@ -40,6 +41,7 @@ type type_ = {
 let type_ ~name ~loc ~mutable_ ~ghost =
   {
     name;
+    args = [];
     loc;
     mutable_;
     ghost;

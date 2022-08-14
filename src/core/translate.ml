@@ -14,17 +14,20 @@ let term_printer text global_loc (t : Tterm.term) =
       (t.t_loc.loc_end.pos_cnum - t.t_loc.loc_start.pos_cnum)
   with Invalid_argument _ -> Fmt.str "%a" Tterm_printer.print_term t
 
-let type_of_ty ~driver (ty : Ttypes.ty) =
+let rec type_of_ty ~driver (ty : Ttypes.ty) =
   match ty.ty_node with
   | Tyvar a ->
       Translated.type_ ~name:a.tv_name.id_str ~loc:a.tv_name.id_loc
         ~mutable_:Translated.Unknown ~ghost:Tast.Nonghost
-  | Tyapp (ts, _tvs) -> (
+  | Tyapp (ts, tvs) -> (
+      let args = List.map (type_of_ty ~driver) tvs in
       match Drv.get_type ts driver with
       | None ->
           let mutable_ = Mutability.ty ~driver ty in
-          Translated.type_ ~name:ts.ts_ident.id_str ~loc:ts.ts_ident.id_loc
-            ~mutable_ ~ghost:Tast.Nonghost
+          let (argless: Translated.type_) = Translated.type_
+              ~name:ts.ts_ident.id_str ~loc:ts.ts_ident.id_loc
+            ~mutable_ ~ghost:Tast.Nonghost in
+          {argless with args} 
       | Some type_ -> type_)
 
 let vsname (vs : Symbols.vsymbol) = Fmt.str "%a" Tast.Ident.pp vs.vs_name

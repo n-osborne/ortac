@@ -1,14 +1,16 @@
-type frontend = Default | Monolith
+type frontend = Default | Monolith | STM
 
 let get_channel = function None -> stdout | Some path -> open_out path
 
 let frontend_printer ppf = function
   | Default -> Fmt.string ppf "Default"
   | Monolith -> Fmt.string ppf "Monolith"
+  | STM -> Fmt.string ppf "STM"
 
 let frontend_parser = function
   | "default" -> Ok Default
   | "monolith" -> Ok Monolith
+  | "STM" -> Ok STM
   | s -> Error (`Msg (Fmt.str "Error: `%s' is not a valid argument" s))
 
 let main frontend input output () =
@@ -17,6 +19,7 @@ let main frontend input output () =
     match frontend with
     | Default -> Ortac_default.generate input channel
     | Monolith -> Ortac_monolith.generate input channel
+| STM -> Ortac_STM.generate input channel
   with Gospel.Warnings.Error e ->
     Fmt.epr "%a@." Gospel.Warnings.pp e;
     exit 1

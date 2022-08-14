@@ -1,6 +1,8 @@
 module W = Warnings
 open Gospel
 
+val unsafe_term: driver:Drv.t -> Tterm.term -> Ppxlib.expression
+
 val with_checks :
   driver:Drv.t ->
   term_printer:(Tterm.term -> string) ->
@@ -47,6 +49,8 @@ val with_constant_checks :
   Tterm.term list ->
   Translated.constant ->
   Translated.constant
+
+val xpost_pattern : driver:Drv.t -> string -> Tterm.pattern_node -> Ppxlib.pattern
 
 val with_xposts :
   driver:Drv.t ->

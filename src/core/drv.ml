@@ -119,6 +119,17 @@ let init module_name env =
   in
   { module_name; stdlib; env; translations = []; types; functions = L.empty }
 
+let init_stm module_name env =
+  let stdlib =
+    List.fold_left
+      (fun acc (path, ocaml) ->
+         let ls = get_ls_env env path in
+         L.add ls ocaml acc)
+      L.empty stdlib in
+  {module_name; stdlib = stdlib; env; translations = []; types = T.empty;
+   functions = L.empty }
+
 let map_translation ~f t = List.rev_map f t.translations
 let iter_translation ~f t = List.iter f (List.rev t.translations)
 let module_name t = t.module_name
+let translations t = t.translations

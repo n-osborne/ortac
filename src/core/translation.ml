@@ -184,10 +184,10 @@ let conditions ~driver ~term_printer fail_violated fail_nonexec terms =
     terms
 
 let with_models ~driver:_ fields (type_ : type_) =
-  let models =
+  let _models =
     List.map (fun ((ls : Symbols.lsymbol), b) -> (ls.ls_name.id_str, b)) fields
   in
-  { type_ with models }
+  { type_ with models = [] }
 
 let subst_invariant_fields var (t : Tterm.term) =
   let rec aux t =

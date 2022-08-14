@@ -11,5 +11,6 @@
   ortac_default
   ortac_core
   ortac_monolith
+  ortac_STM
   ppxlib
   ppxlib.ast))
