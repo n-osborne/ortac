@@ -31,6 +31,7 @@ depends: [
   "cmdliner" {>= "1.1.0"}
   "fmt"
   "ppxlib" {>= "0.26.0"}
+  "qcheck"   {>= "0.19.1"}
   "gospel"
   "alcotest" {with-test}
   "pprint" {with-test}
