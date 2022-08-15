@@ -353,7 +353,8 @@ let with_posts ~driver ~term_printer posts (value : value) =
   let violated term = F.violated `Post ~term ~register_name in
   let nonexec term exn = F.spec_failure `Post ~term ~exn ~register_name in
   let postconditions = conditions ~driver ~term_printer violated nonexec posts
-                       |> List.map (fun x -> (x, true))
+                       |> List.map (fun x -> {post = x; contains_returns =true})
+                         (*dummy value for contains_returns*)
   in { value with postconditions }
 
 let with_constant_checks ~driver ~term_printer checks (constant : constant) =

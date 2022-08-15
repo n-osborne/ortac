@@ -120,8 +120,6 @@ let with_pre ~driver ~term_printer pres (value : Translated.value) =
 
 let with_post ~driver ~term_printer (posts : Tterm.term list) (rets: Tast.lb_arg list)
     (value : Translated.value) =
-  let zip l1 l2 = assert ((List.length l1) = (List.length l2));
-    List.mapi (fun i arg -> (arg, List.nth l2 i)) l1 in
   let contains_rets (t: Tterm.term) : bool =
     let fvs = Tterm_helper.t_free_vars t in
     List.fold_right (fun ret acc ->
@@ -135,8 +133,10 @@ let with_post ~driver ~term_printer (posts : Tterm.term list) (rets: Tast.lb_arg
       ({ txt; loc; translation } : Translated.term)) posts
   in
   (*add the markings for whether the ensures can be used in next_state*)
-  let marks = List.map (fun t -> not (contains_rets t)) posts in (*true if contains ret, false if not*)
-  let postconditions = zip postconditions marks in 
+  let marks = List.map (fun t -> contains_rets t) posts in (*true if contains ret, false if not*)
+  let postconditions  = let open Translated in
+    List.map2 (fun post contains_returns -> {post; contains_returns})
+      postconditions marks in
   { value with postconditions }
 
 

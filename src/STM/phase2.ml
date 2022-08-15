@@ -149,24 +149,27 @@ let make_state ?(init_state = false)
   expression S.t * bool I.t =
   (*the bool for each equation is whether that equation can be used in make_next
   *)
-  let get_field_rhs ?(error = "Unknown") (equations: (term * bool) list) (field: string)
+  let get_field_rhs ?(error = "Unknown") (equations: Translated.postcondition list)
+      (field: string)
       (prefix: string) : int * expression  =
     let field = Printf.sprintf "%s.%s" prefix field in
-    ( match List.find_opt (fun (_, ((term : term), usable)) ->
-          match term.translation with
-            Ok exp -> (get_lhs exp = Some field) && (usable || init_state)
+    ( match List.find_opt (fun (_, postcond) ->
+          match postcond.post.translation with
+            Ok exp -> (get_lhs exp = Some field) &&
+                      ((not postcond.contains_returns) || init_state)
           | _ -> false 
         ) (enum equations) with (*found a term which sets the field name equal to something*)
-        Some (i, (term, _)) -> (i, (term.translation |> Result.get_ok |> get_rhs_exn))
+        Some (i, postcond) -> (i, (postcond.post.translation
+                                   |> Result.get_ok |> get_rhs_exn))
       | None ->
-        (match List.find_opt (fun ((term : term), _) ->
-              match term.translation with
+        (match List.find_opt (fun postcond ->
+              match postcond.post.translation with
                 Ok exp -> (get_lhs exp = Some field)
               | _ -> false 
             ) equations with
           | None -> raise (Failure (Printf.sprintf "field %s undefined in %s" field error))
-          | Some  (t, _) -> Printf.eprintf "Error: field %s undefined in %s\n(Postcondition %s cannot be used because it refers to the return value, which cannot define the state)\n%!"
-                              field error t.txt
+          | Some  postcond -> Printf.eprintf "Error: field %s undefined in %s\n(Postcondition %s cannot be used because it refers to the return value, which cannot define the state)\n%!"
+                              field error postcond.post.txt
             ;
             raise (Failure "undefined field")
         )) in
@@ -244,8 +247,8 @@ let postcond items (cmds : cmd) (used: (bool I.t) S.t) : postcond =
                                   translation = Result.get_ok xpost.translation}) cmd_item.xpostconditions)
        in
        let ensures  = let used = S.find cmd used in
-         List.filter_map (fun (i, ((t: term), _)) -> if (not (I.find i used))
-                           then Some (t.translation |> Result.get_ok)
+         List.filter_map (fun (i, postcond) -> if (not (I.find i used))
+                           then Some (postcond.post.translation |> Result.get_ok)
                            else None) (enum cmd_item.postconditions) in
        let out : postcond_case = {checks; raises; ensures } in
        out

@@ -17,7 +17,7 @@ let value ppf (v : value) =
   | Gospel.Tast.Ghost -> W.pp ppf (W.Ghost_value v.name, v.loc)
   | Nonghost ->
       terms ppf v.preconditions;
-      terms ppf (List.map fst v.postconditions);
+      terms ppf (List.map (fun post -> post.post) v.postconditions);
       xposts ppf v.xpostconditions
 
 let type_ ppf (t : type_) =
