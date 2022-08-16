@@ -1,7 +1,7 @@
 module W = Warnings
 open Gospel
 
-val unsafe_term: driver:Drv.t -> Tterm.term -> Ppxlib.expression
+val pattern: Tterm.pattern_node -> Ppxlib.pattern
 
 val with_checks :
   driver:Drv.t ->

@@ -156,18 +156,20 @@ let mk_cmd_pat (cmd : string) (cmd_ele: cmd_ele) =
         Some (ppat_tuple (List.map (fun (arg: Ast3.ocaml_var) -> pvar arg.name) args) ))
 
 
-let mk_cmd_cases ?(state_name = None) (cmd : Ast3.cmd) (rhs : expression S.t)  =
+let mk_cmd_cases ?(state_name = None)
+    ?(lhs = None)(*default is to use the special arg name for the lhs*)
+    (cmd : Ast3.cmd) (rhs : expression S.t)  =
   List.map (fun (cmd_cstr, cmd_ele) ->
       let pattern = mk_cmd_pat cmd_cstr cmd_ele in
       let rhs = S.find cmd_cstr rhs in
       let rhs = match state_name with
         | None -> rhs
-        | Some state_name ->
-          [%expr let [%p pvar cmd_ele.targ_name] = [%e evar state_name] in [%e rhs]] in
+        | Some state_name -> let lhs = Option.value ~default:cmd_ele.targ_name lhs in
+          [%expr let [%p pvar lhs] = [%e evar state_name] in [%e rhs]] in
       case ~lhs:pattern ~guard:None ~rhs) 
     (S.bindings cmd)
 
-let mk_cmdres_cases ~state_name:state_name (cmd : Ast3.cmd) (rhs : expression S.t) =
+let mk_cmdres_cases ~state_name ~old_state ~cmd_name (cmd : Ast3.cmd) (rhs : expression S.t) =
   let mk_res_pat cmd_cstr (cmd_ele : Ast3.cmd_ele) : pattern =
     let (typ, rpat) = match cmd_ele.ret with
       | [] -> raise (Failure "unnamed unit return in phase 3") 
@@ -178,9 +180,11 @@ let mk_cmdres_cases ~state_name:state_name (cmd : Ast3.cmd) (rhs : expression S.
   (List.map (fun (cmd_cstr, (cmd_ele : cmd_ele)) ->
       let pattern = ppat_tuple [mk_cmd_pat cmd_cstr cmd_ele; mk_res_pat cmd_cstr cmd_ele] in
      let rhs = S.find cmd_cstr rhs in
-     let rhs = [%expr let [%p pvar cmd_ele.targ_name] = [%e evar state_name] in [%e rhs]] in
+     let rhs = [%expr let [%p pvar old_state] = [%e evar state_name] in
+       let [%p pvar cmd_ele.targ_name] = next_state [%e evar cmd_name] [%e evar state_name]
+       in [%e rhs]] in
      case ~lhs:pattern ~guard:None ~rhs)
-    (S.bindings cmd))@[case ~lhs:ppat_any ~guard:None ~rhs:[%expr false]]
+    (S.bindings cmd))@[case ~lhs:ppat_any ~guard:None ~rhs:[%expr false]] 
 
 let mk_cmd (cmd : Ast3.cmd) : structure_item =
   let mk_variant (cmd : Ast3.cmd) =
@@ -247,10 +251,10 @@ let mk_arb_cmd (cmd: Ast3.cmd) (arb_cmd: Ast3.arb_cmd) =
     [%expr QCheck.make ~print:show_cmd Gen.(oneof [%e elist for_oneof ])] in
   let body : expression = ISet.fold mk_map maps_needed (mk_arb_cmd_body cmd arb_cmd)
                           (*add all the maps on top of the body*)
-                          |> conditional_add tuple (Phase2.new_name "tuple")  
+                          |> conditional_add tuple (Phase1.new_name "tuple")  
                             (mk_fn_single ["a"; "b"] [%expr (a, b)])
                           (*add tuple definition*)
-                          |> conditional_add triple (Phase2.new_name "triple")
+                          |> conditional_add triple (Phase1.new_name "triple")
                             (mk_fn_single ["a"; "b"; "c"] [%expr (a, b, c)])
                             (*add triple definition*)
   in
@@ -263,8 +267,8 @@ let next_state (cmd_name: cmd) (state_name: state) = match cmd_name with
     then <correct ending state as specified by (find next_state cmd_constr)>
     else state_name
 *)
-let mk_next_state (cmd: Ast3.cmd) (next_state : Ast3.next_state) (state : state) ~state_name:state_name
-  ~cmd_name:cmd_name =
+let mk_next_state (cmd: Ast3.cmd) (next_state : Ast3.next_state) (state : state)
+    ~state_name ~old_state ~cmd_name =
   let state_var = evar state_name in
   let cmd_var = evar cmd_name in
   let rhs : expression S.t =
@@ -280,14 +284,17 @@ let mk_next_state (cmd: Ast3.cmd) (next_state : Ast3.next_state) (state : state)
         ]
       )
       next_state in
-  let body = pexp_match cmd_var (mk_cmd_cases ~state_name:(Some state_name) cmd rhs) in
+  let body = pexp_match cmd_var (mk_cmd_cases ~state_name:(Some state_name)
+                                   ~lhs:(Some old_state) 
+                                   cmd rhs) in
   [%stri let next_state [%p pvar cmd_name] [%p pvar state_name] = [%e body]]
 
 
 
 let mk_precond (cmd: Ast3.cmd) (precond : Ast3.precond) ~state_name:state_name ~cmd_name:cmd_name =
   let precond : expression S.t = S.map conjoin precond in 
-    let body = pexp_match (evar cmd_name) (mk_cmd_cases ~state_name:(Some state_name)
+    let body = pexp_match (evar cmd_name) (mk_cmd_cases
+                                             ~state_name:(Some state_name)
                                              cmd precond) in
   [%stri let precond [%p pvar cmd_name] [%p pvar state_name] = [%e body]]
 
@@ -355,7 +362,8 @@ let mk_xpost (xposts: Ast3.xpost list) (exn_name : string) : case list =
      in (case ~guard:None ~lhs ~rhs)::outer_cases
     ) cases default_cases
 
-let mk_postcond (cmd : Ast3.cmd) (postcond: Ast3.postcond ) ~cmd_name:cmd_name ~state_name:state_name =
+let mk_postcond (cmd : Ast3.cmd) (postcond: Ast3.postcond )
+    ~state_name ~old_state ~cmd_name =
   let rhs : expression S.t = S.mapi (fun cmd_cstr (cmd_ele : cmd_ele) ->
       let pc_case = S.find cmd_cstr postcond in
       let r_name  =
@@ -371,7 +379,7 @@ let mk_postcond (cmd : Ast3.cmd) (postcond: Ast3.postcond ) ~cmd_name:cmd_name ~
                                                       body else r = Error
                                                       Invalid_argument *)
         let true_branch = if cmd_ele.pure then ensures_conj else
-            let exn_name = Phase2.new_name "exn" in
+            let exn_name = Phase1.new_name "exn" in
             let exn_match = pexp_match (evar exn_name) (mk_xpost pc_case.raises exn_name)
             in
             [%expr match [%e (evar r_name)] with
@@ -385,20 +393,20 @@ let mk_postcond (cmd : Ast3.cmd) (postcond: Ast3.postcond ) ~cmd_name:cmd_name ~
     )
       cmd
   in
-  let res_name = Phase2.new_name "res" in
+  let res_name = Phase1.new_name "res" in
   let body = pexp_match (pexp_tuple [(evar cmd_name); (evar res_name)])
-      (mk_cmdres_cases ~state_name:state_name cmd rhs)
+      (mk_cmdres_cases ~state_name ~old_state ~cmd_name cmd rhs)
   in
   [%stri let postcond [%p pvar cmd_name] [%p pvar state_name] [%p pvar res_name] = [%e body]]
 
 
-let structure _runtime (stm : Ast3.stm) : Parsetree.structure_item list =
+let structure _runtime ~old_state (stm : Ast3.stm) : Parsetree.structure_item list =
   let incl : Parsetree.structure_item =
     (pmod_ident (lident stm.module_name) |> include_infos |> pstr_include) in
-  (* let ortac_runtime : Parsetree.structure_item = pstr_module
+ (* let ortac_runtime : Parsetree.structure_item = pstr_module
       (module_binding
          ~name:{ txt = Some "Ortac_runtime"; loc }
-         ~expr:(pmod_ident (lident runtime))) in*)
+         ~expr:(pmod_ident (lident runtime))) in *)
   let at = [%stri module AT = STM.Make(CConf)] in 
   let tests = [%stri let _ = QCheck_runner.run_tests_main
                          (let count,name = 1000,"atomic test" in
@@ -411,18 +419,18 @@ let structure _runtime (stm : Ast3.stm) : Parsetree.structure_item list =
                                    ~manifest:(Some (ptyp_constr (lident (stm.module_name ^ ".t")) []))] in 
   let state = mk_state stm.state in
   let cmd = mk_cmd stm.cmd in
-  let cmd_name = Fmt.str "%a" Ident.pp (Ident.create "c" ~loc) in
-  let state_name = Fmt.str "%a" Ident.pp (Ident.create "s" ~loc) in
+  let cmd_name = Phase1.new_name "c" in
+  let state_name = Phase1.new_name "s" in
   let sut_name = Fmt.str "%a" Ident.pp (Ident.create "sut" ~loc) in
   let init_sut = [%stri let init_sut = [%e evar (stm.module_name ^ ".init_sut")]] in
   let  cleanup = [%stri let cleanup _ = () ] in 
   let arb_cmd = mk_arb_cmd stm.cmd stm.arb_cmd in
   let next_state = mk_next_state stm.cmd stm.next_state stm.state
-      ~state_name ~cmd_name in
+      ~state_name ~old_state ~cmd_name  in
   let run = mk_run stm.module_name stm.cmd stm.run ~cmd_name ~sut_name in
   let init_state = mk_init_state stm.init_state in
   let precond = mk_precond stm.cmd stm.precond ~state_name ~cmd_name in
-  let postcond = mk_postcond stm.cmd stm.postcond ~cmd_name ~state_name in
+  let postcond = mk_postcond stm.cmd stm.postcond ~state_name ~old_state ~cmd_name in
   let cconf = pstr_module
       (module_binding ~name:(Some "CConf" |> noloc)
          ~expr:(pmod_structure [sut ; state; cmd; init_sut; cleanup; arb_cmd;

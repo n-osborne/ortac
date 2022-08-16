@@ -14,8 +14,6 @@ let safe_add (key : string) v (m : 'a S.t) = match S.find_opt key m with
     None -> `Ok (S.add key v m)
   | Some _ -> `Duplicate (key)
 
-let new_name name = let loc = !Ast_helper.default_loc in 
-  Fmt.str "%a" Ident.pp (Ident.create name ~loc)
 
 
 let value v = match v with Value v -> v | _ -> raise (Failure "not value")
@@ -84,7 +82,7 @@ let cmd (items: Translated.structure_item list) : Ast3.cmd =
                     (*^ gospel does not allow you to unpack tuples in arguments,
                     so all of these are actually distinct args*)
                     ret = (match v.returns with
-                        [] -> [{name = new_name "ret"; label = Nolabel; typ = Unit}]
+                        [] -> [{name = Phase1.new_name "ret"; label = Nolabel; typ = Unit}]
                         (*unnamed return : unit*)
                         | _ :: _ -> List.map mk_ocaml_var v.returns);
                     pure = v.pure;
@@ -134,7 +132,7 @@ let get_sides  (exp: expression) : (string * expression) option  =
   (match exp.pexp_desc with
   | Pexp_apply (fn, [(Nolabel, field_exp); (Nolabel, field_val)]) ->
     if (not (is_equal fn)) then None
-    else Option.map  (fun s -> (s, field_val)) (get_ident field_exp)
+    else Option.map (fun s -> (s, field_val)) (get_ident field_exp)
   | _ -> None)
 
 
@@ -168,7 +166,7 @@ let make_state ?(init_state = false)
               | _ -> false 
             ) equations with
           | None -> raise (Failure (Printf.sprintf "field %s undefined in %s" field error))
-          | Some  postcond -> Printf.eprintf "Error: field %s undefined in %s\n(Postcondition %s cannot be used because it refers to the return value, which cannot define the state)\n%!"
+          | Some postcond -> Printf.eprintf "Error: field %s undefined in %s\n(Postcondition %s cannot be used because it refers to the return value, which cannot define the state)\n%!"
                               field error postcond.post.txt
             ;
             raise (Failure "undefined field")
@@ -256,7 +254,7 @@ let postcond items (cmds : cmd) (used: (bool I.t) S.t) : postcond =
     cmds 
 
 
-let stm (driver : Drv.t)  : Ast3.stm  =
+let stm (driver : Drv.t) : Ast3.stm  =
   let capitalize items = List.map (fun item ->
       match item with
       Value v -> Value {v with name = String.capitalize_ascii v.name}
