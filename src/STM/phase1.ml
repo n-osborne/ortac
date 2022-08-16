@@ -3,14 +3,14 @@
 open Ortac_core
 module W = Warnings
 open Types
-
 open Ppxlib
-open Builder
 open Gospel
+include Builder
 module T = Translation
 module Ident = Identifier.Ident
 module Ts = Translated
 module I = Map.Make (Int)
+
 
 let string_of_ident = Fmt.str "%a" Ident.pp
 
@@ -21,6 +21,13 @@ let new_name name = let loc = !Ast_helper.default_loc in
 let term_printer ?(v = true) _text _global_loc (t : Tterm.term)  =
   if v then () else ();
   Fmt.str "%a" Tterm_printer.print_term t
+
+let econst = function
+  | Pconst_integer (c, o) ->
+    Pconst_integer (c, o) |> pexp_constant |> fun e ->
+    eapply (evar "Z.of_int") [ e ]
+   | _ as e -> pexp_constant e
+
 
 (*translates a TAST term into a ppx expression.*)
 let rec unsafe_term ~old_state_name ~state_arg ~driver (t : Tterm.term)

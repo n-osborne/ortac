@@ -20,7 +20,7 @@ let rec splitn n l = if n = 0 then ([], l) else
 (*ast3 helpers *)
 let rec typ_to_str ?(args = false) ?(paren_args = false) ?(capitalize = false) t =
 let out =  match t with
-  | Integer -> "Ortac_runtime.Z.t"
+  | Integer -> "Z.t"
   | Int -> "int"
   | String -> "string"
   | Bool -> "bool"
@@ -403,10 +403,6 @@ let mk_postcond (cmd : Ast3.cmd) (postcond: Ast3.postcond )
 let structure _runtime ~old_state (stm : Ast3.stm) : Parsetree.structure_item list =
   let incl : Parsetree.structure_item =
     (pmod_ident (lident stm.module_name) |> include_infos |> pstr_include) in
- (* let ortac_runtime : Parsetree.structure_item = pstr_module
-      (module_binding
-         ~name:{ txt = Some "Ortac_runtime"; loc }
-         ~expr:(pmod_ident (lident runtime))) in *)
   let at = [%stri module AT = STM.Make(CConf)] in 
   let tests = [%stri let _ = QCheck_runner.run_tests_main
                          (let count,name = 1000,"atomic test" in
