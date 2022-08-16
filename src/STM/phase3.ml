@@ -403,11 +403,6 @@ let mk_postcond (cmd : Ast3.cmd) (postcond: Ast3.postcond )
 let structure _runtime ~old_state (stm : Ast3.stm) : Parsetree.structure_item list =
   let incl : Parsetree.structure_item =
     (pmod_ident (lident stm.module_name) |> include_infos |> pstr_include) in
-  let at = [%stri module AT = STM.Make(CConf)] in 
-  let tests = [%stri let _ = QCheck_runner.run_tests_main
-                         (let count,name = 1000,"atomic test" in
-                          [AT.agree_test     ~count ~name;
-                           AT.agree_test_par ~count ~name;])] in 
   let open1 = open_infos ~expr:(pmod_ident (lident "QCheck")) ~override:Fresh |> pstr_open in
   let open2 = open_infos ~expr:(pmod_ident (lident "STM")) ~override:Fresh |> pstr_open in
   let sut = pstr_type Recursive [type_declaration ~name:(noloc "sut") ~params:[] ~cstrs:[]
@@ -432,4 +427,9 @@ let structure _runtime ~old_state (stm : Ast3.stm) : Parsetree.structure_item li
          ~expr:(pmod_structure [sut ; state; cmd; init_sut; cleanup; arb_cmd;
                                 next_state; run; init_state; precond; postcond])
                           ) in 
+  let at = [%stri module AT = STM.Make(CConf)] in 
+  let tests = [%stri let _ = QCheck_runner.run_tests_main
+                         (let count,name = 1000,"atomic test" in
+                          [AT.agree_test     ~count ~name;
+                           AT.agree_test_par ~count ~name;])] in 
   [incl; open1; open2; cconf; at; tests]

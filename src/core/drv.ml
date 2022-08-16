@@ -110,23 +110,17 @@ let stdlib_stm =
     ([ "infix ::" ], "(::)");
     ([ "infix =" ], "(=)");
     ([ "prefix !" ], "!");
-    ([ "Gospelstdlib"; "infix +" ], "Z.add");
-    ([ "Gospelstdlib"; "infix -" ], "Z.sub");
-    ([ "Gospelstdlib"; "infix *" ], "Z.mul");
-    ([ "Gospelstdlib"; "infix /" ], "Z.div");
-    ([ "Gospelstdlib"; "mod" ], "Z.rem");
-    ([ "Gospelstdlib"; "logand" ], "Z.logand");
-    ([ "Gospelstdlib"; "prefix -" ], "Z.neg");
-    ([ "Gospelstdlib"; "infix >" ], "Z.gt");
-    ([ "Gospelstdlib"; "infix >=" ], "Z.geq");
-    ([ "Gospelstdlib"; "infix <" ], "Z.lt");
-    ([ "Gospelstdlib"; "infix <=" ], "Z.leq");
-    ([ "Gospelstdlib"; "integer_of_int" ], "Z.of_int");
-    ([ "Gospelstdlib"; "abs" ], "Z.abs");
-    ([ "Gospelstdlib"; "min" ], "Z.min");
-    ([ "Gospelstdlib"; "max" ], "Z.max");
-    ([ "Gospelstdlib"; "succ" ], "Z.succ");
-    ([ "Gospelstdlib"; "pred" ], "Z.pred")
+    ([ "Gospelstdlib"; "infix +" ], "(+)");
+    ([ "Gospelstdlib"; "infix -" ], "(-)");
+    ([ "Gospelstdlib"; "infix *" ], "(*)");
+    ([ "Gospelstdlib"; "infix /" ], "(/)");
+    ([ "Gospelstdlib"; "mod" ], "Int.rem");
+    ([ "Gospelstdlib"; "logand" ], "Int.logand");
+    ([ "Gospelstdlib"; "abs" ], "Int.abs");
+    ([ "Gospelstdlib"; "min" ], "Int.min");
+    ([ "Gospelstdlib"; "max" ], "Int.max");
+    ([ "Gospelstdlib"; "succ" ], "Int.succ");
+    ([ "Gospelstdlib"; "pred" ], "Int.pred")
   ]
 
 let init module_name env =
