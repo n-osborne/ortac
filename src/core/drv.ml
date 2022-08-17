@@ -132,6 +132,7 @@ let stdlib_stm =
     ([ "Gospelstdlib"; "List"; "nth" ], "Stdlib.List.nth");
     ([ "Gospelstdlib"; "List"; "mapi" ], "Stdlib.List.mapi");
     ([ "Gospelstdlib"; "List"; "for_all" ], "Stdlib.List.for_all");
+    ([ "Gospelstdlib"; "List"; "mem" ], "Stdlib.List.mem");
     ([ "Gospelstdlib"; "List"; "length" ], "Stdlib.List.length");
     ([ "Gospelstdlib"; "snd" ], "snd");
     ([ "Gospelstdlib"; "fst" ], "fst");
@@ -148,6 +149,8 @@ let placeholder =
     ([ "Int"; "sub" ], "Stdlib.Int.sub");
     ([ "List"; "mapi" ], "Stdlib.List.mapi");
     ([ "List"; "length" ], "Stdlib.List.length");
+    ([ "List"; "sort" ], "Stdlib.List.sort");
+    ([ "Char"; "compare" ], "Stdlib.Char.compare");
   ]
 
 let init module_name env =
@@ -172,8 +175,9 @@ let init_stm module_name env =
   let stdlib =
     List.fold_left
       (fun acc (path, ocaml) ->
-         let ls = get_ls_env env path in
-         L.add ls ocaml acc)
+        try let ls = get_ls_env env path
+         in
+         L.add ls ocaml acc with _ -> acc)
       L.empty (stdlib_stm @ placeholder) in
   {module_name; stdlib = stdlib; env; translations = []; types = T.empty;
    functions = L.empty }

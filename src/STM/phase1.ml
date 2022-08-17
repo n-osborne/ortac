@@ -76,13 +76,9 @@ let rec unsafe_term ~old_state_name ~state_arg ~driver (t : Tterm.term)
   | Tapp (ls, tlist) ->
      ( Drv.translate_stdlib ls driver |> function
       | Some f ->
-        Printf.eprintf "gospel function being applied is:%s\n%!" f;
-        List.fold_left (fun _ s -> Printf.eprintf "attr is:%s\n%!" s) () ls.ls_name.id_attrs; 
         eapply (evar f) (List.map term tlist)
       | None ->
         let func = ls.ls_name.id_str in
-        Printf.eprintf "function being applied is:%s\n%!" func;
-        List.fold_left (fun _ s -> Printf.eprintf "attr is:%s\n%!" s) () ls.ls_name.id_attrs; 
         if ls.ls_constr then
           (if tlist = [] then None
            else Some (List.map term tlist |> pexp_tuple))
