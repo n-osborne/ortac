@@ -20,6 +20,7 @@ phase3: Ast3 -> final product
 type typ =
   | Int
   | Integer
+  | Char
   | String
   | Bool
   | Unit
@@ -28,7 +29,7 @@ type typ =
 let get_typ_args t =
   match t with
   | List a -> [a]
-  | Int | Integer | String | Bool| Unit -> []
+  | Int | Integer | String | Bool| Unit | Char -> []
 
 
 type ocaml_var = {name : string; label : arg_label; typ: typ}
@@ -39,7 +40,9 @@ fn name -> {name of the special first argument which is always of type t;
            remaining arguments;
            returns;
            whether it is pure} *)
-type cmd_ele = {targ_name: string; args: ocaml_var list; ret: ocaml_var list; pure:bool}
+
+type targ = {index: int; arg : string}
+type cmd_ele = {targ: targ ; args: ocaml_var list; ret: ocaml_var list; pure:bool}
 type cmd= cmd_ele S.t
 
 (* model name -> model type 

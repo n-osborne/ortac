@@ -25,6 +25,7 @@ let out =  match t with
   | String -> "string"
   | Bool -> "bool"
   | Unit -> "unit"
+  | Char -> "char"
   | List typ -> if args then
       let unparened =  "list " ^ (typ_to_str ~args:true ~paren_args:true ~capitalize:capitalize typ) in
       if paren_args then "(" ^ unparened ^ ")" else unparened 
@@ -164,7 +165,7 @@ let mk_cmd_cases ?(state_name = None)
       let rhs = S.find cmd_cstr rhs in
       let rhs = match state_name with
         | None -> rhs
-        | Some state_name -> let lhs = Option.value ~default:cmd_ele.targ_name lhs in
+        | Some state_name -> let lhs = Option.value ~default:cmd_ele.targ.arg lhs in
           [%expr let [%p pvar lhs] = [%e evar state_name] in [%e rhs]] in
       case ~lhs:pattern ~guard:None ~rhs) 
     (S.bindings cmd)
@@ -181,7 +182,7 @@ let mk_cmdres_cases ~state_name ~old_state ~cmd_name (cmd : Ast3.cmd) (rhs : exp
       let pattern = ppat_tuple [mk_cmd_pat cmd_cstr cmd_ele; mk_res_pat cmd_cstr cmd_ele] in
      let rhs = S.find cmd_cstr rhs in
      let rhs = [%expr let [%p pvar old_state] = [%e evar state_name] in
-       let [%p pvar cmd_ele.targ_name] = next_state [%e evar cmd_name] [%e evar state_name]
+       let [%p pvar cmd_ele.targ.arg] = next_state [%e evar cmd_name] [%e evar state_name]
        in [%e rhs]] in
      case ~lhs:pattern ~guard:None ~rhs)
     (S.bindings cmd))@[case ~lhs:ppat_any ~guard:None ~rhs:[%expr false]] 
@@ -272,13 +273,16 @@ let mk_next_state (cmd: Ast3.cmd) (next_state : Ast3.next_state) (state : state)
   let state_var = evar state_name in
   let cmd_var = evar cmd_name in
   let rhs : expression S.t =
-    S.map (fun (nsc : next_state_case) ->
+    S.mapi (fun cmd_constr (nsc : next_state_case) ->
         (*if all the fields are set then no need to use original*)
         let og = if S.cardinal nsc.next = S.cardinal state then None else (Some state_var) in
         let record = if S.cardinal nsc.next = 0 then state_var else mk_record ~og nsc.next in
         match nsc.pres with
           [] -> record (*no preconditions so automatically move to next state*)
-        | _::_ -> [%expr if [%e conjoin nsc.pres] then
+        | _::_ -> let targ_name = (S.find cmd_constr cmd).targ.arg in
+          (*introduce the current state as equal to the old state in checks*)
+          [%expr
+            if  let [%p pvar targ_name] = [%e state_var] in [%e conjoin nsc.pres] then
             [%e record]
           else [%e state_var]
         ]
@@ -300,6 +304,12 @@ let mk_precond (cmd: Ast3.cmd) (precond : Ast3.precond) ~state_name:state_name ~
 
 
 let mk_run m_name (cmd : Ast3.cmd) (run: Ast3.run) ~cmd_name:cmd_name ~sut_name:sut_name =
+  let rec insert v i l =
+    if (i = 0) then v::l else
+      (match l with
+       | [] -> raise (Failure "out of bounds in insert")
+       | l::ls -> l::(insert v (i-1) ls)
+      ) in
   let res : expression S.t = S.mapi (fun cmd_cstr (ret, pure) ->
       let typ = match ret with
       | [] -> [%expr unit]
@@ -307,7 +317,9 @@ let mk_run m_name (cmd : Ast3.cmd) (run: Ast3.run) ~cmd_name:cmd_name ~sut_name:
       | _ :: _ -> raise (Failure ("tuple return type in " ^ cmd_cstr ^ " not yet supported")) in
       let typ = if pure then typ else [%expr result [%e typ] exn] in
       let cmd = S.find cmd_cstr cmd in
-      let args = (evar sut_name)::(List.map (fun (arg : ocaml_var) -> evar arg.name) cmd.args) in
+      let args =
+        insert (evar sut_name) cmd.targ.index
+          (List.map (fun (arg : ocaml_var) -> evar arg.name) cmd.args) in
       let fn = (evar (m_name ^ "." ^ (String.uncapitalize_ascii cmd_cstr))) in 
       let app = if pure
         then mk_app fn args
@@ -354,7 +366,7 @@ let mk_xpost (xposts: Ast3.xpost list) (exn_name : string) : case list =
         [%expr (fun (truth, matched) (truth_acc, matched_acc) ->
             (truth && truth_acc, matched || matched_acc)
           )] in
-      let rhs  = [%expr List.fold_right
+      let rhs  = [%expr Stdlib.List.fold_right
           [%e inner_case_accumulate]
           [%e elist matches]
           (true, false) |> (fun (b1, b2) -> b1 && b2)
@@ -433,3 +445,4 @@ let structure _runtime ~old_state (stm : Ast3.stm) : Parsetree.structure_item li
                           [AT.agree_test     ~count ~name;
                            AT.agree_test_par ~count ~name;])] in 
   [incl; open1; open2; cconf; at; tests]
+

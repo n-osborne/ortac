@@ -102,6 +102,8 @@ let stdlib =
     ([ "Gospelstdlib"; "Array"; "for_all" ], "Ortac_runtime.Array.for_all");
   ]
 
+(* hack sending all integer functions to int functions
+  till gospel supports machine ints and certain list/string fns*)
 let stdlib_stm =
   [
     ([ "None" ], "None");
@@ -114,20 +116,46 @@ let stdlib_stm =
     ([ "Gospelstdlib"; "infix -" ], "(-)");
     ([ "Gospelstdlib"; "infix *" ], "(*)");
     ([ "Gospelstdlib"; "infix /" ], "(/)");
-    ([ "Gospelstdlib"; "mod" ], "Int.rem");
-    ([ "Gospelstdlib"; "logand" ], "Int.logand");
-    ([ "Gospelstdlib"; "abs" ], "Int.abs");
-    ([ "Gospelstdlib"; "min" ], "Int.min");
-    ([ "Gospelstdlib"; "max" ], "Int.max");
-    ([ "Gospelstdlib"; "succ" ], "Int.succ");
-    ([ "Gospelstdlib"; "pred" ], "Int.pred")
+    ([ "Gospelstdlib"; "infix <" ], "(<)");
+    ([ "Gospelstdlib"; "infix <=" ], "(<=)");
+    ([ "Gospelstdlib"; "infix >" ], "(>)");
+    ([ "Gospelstdlib"; "infix >=" ], "(>=)");
+    ([ "Gospelstdlib"; "mod" ], "Stdlib.Int.rem");
+    ([ "Gospelstdlib"; "logand" ], "Stdlib.Int.logand");
+    ([ "Gospelstdlib"; "abs" ], "Stdlib.Int.abs");
+    ([ "Gospelstdlib"; "min" ], "Stdlib.Int.min");
+    ([ "Gospelstdlib"; "max" ], "Stdlib.Int.max");
+    ([ "Gospelstdlib"; "succ" ], "Stdlib.Int.succ");
+    ([ "Gospelstdlib"; "pred" ], "Stdlib.Int.pred");
+    ([ "Gospelstdlib"; "List"; "init" ], "Stdlib.List.init");
+    ([ "Gospelstdlib"; "List"; "init" ], "Stdlib.List.init");
+    ([ "Gospelstdlib"; "List"; "nth" ], "Stdlib.List.nth");
+    ([ "Gospelstdlib"; "List"; "mapi" ], "Stdlib.List.mapi");
+    ([ "Gospelstdlib"; "List"; "for_all" ], "Stdlib.List.for_all");
+    ([ "Gospelstdlib"; "List"; "length" ], "Stdlib.List.length");
+    ([ "Gospelstdlib"; "snd" ], "snd");
+    ([ "Gospelstdlib"; "fst" ], "fst");
+  ]
+
+(*hack until gospel supports more list/string functions *)
+
+let placeholder =
+  [
+    ([ "String"; "init" ], "Stdlib.String.init");
+    ([ "String"; "get" ], "Stdlib.String.get");
+    ([ "String"; "length" ], "Stdlib.String.length");
+    ([ "Int"; "add" ], "Stdlib.Int.add");
+    ([ "Int"; "sub" ], "Stdlib.Int.sub");
+    ([ "List"; "mapi" ], "Stdlib.List.mapi");
+    ([ "List"; "length" ], "Stdlib.List.length");
   ]
 
 let init module_name env =
   let stdlib =
     List.fold_left
       (fun acc (path, ocaml) ->
-        let ls = get_ls_env env path in
+         let ls = ns_find (fun ns -> ns.ns_ls) env path in
+         (*it iteratively looks up the front identifiers in the namespace*)
         L.add ls ocaml acc)
       L.empty stdlib
   in
@@ -146,7 +174,7 @@ let init_stm module_name env =
       (fun acc (path, ocaml) ->
          let ls = get_ls_env env path in
          L.add ls ocaml acc)
-      L.empty stdlib_stm in
+      L.empty (stdlib_stm @ placeholder) in
   {module_name; stdlib = stdlib; env; translations = []; types = T.empty;
    functions = L.empty }
 

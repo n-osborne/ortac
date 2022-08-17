@@ -8,7 +8,8 @@ module Ident = Gospel.Identifier.Ident
 module S = Map.Make (String)
 module I = Map.Make (Int)
 
-let enum = List.mapi (fun i x -> (i, x)) 
+(*ask jan why cant i drop the l from here?*)
+let enum l = List.mapi (fun i x -> (i, x)) l
 
 let safe_add (key : string) v (m : 'a S.t) = match S.find_opt key m with
     None -> `Ok (S.add key v m)
@@ -29,6 +30,7 @@ let rec typ_of_type_ (error: string) (ty: type_)  =
     | "string" ->  String
     | "bool" -> Bool
     | "unit" -> Unit
+    | "char" -> Char
     | _ -> unsupported_type s 
   in
   match ty.args with
@@ -45,7 +47,8 @@ let rec mk_qcheck (typ: Ast3.typ) : expression =
   match typ with
   | Int ->  [%expr frequency [(1, small_nat); (20, int)]]
   | Integer -> raise (Failure "cannot make generator for Gospel stdlib type Integer")
-  | String -> [%expr frequency [(1, small_string); (20, string)]]
+  | Char -> [%expr frequency [(5, printable); (15, char)]]
+  | String -> [%expr frequency [(5, small_string ~gen:printable); (20, string ~gen:char)]]
   | Bool -> [%expr bool]
   | Unit -> [%expr unit]
   | List typ -> [%expr list [%e mk_qcheck typ]]
@@ -67,17 +70,24 @@ let find_value items name =
 let cmd (items: Translated.structure_item list) : Ast3.cmd =
   (*is v an stm command candidate *)
  let is_stmable (v : Translated.value) =
-  (v.name <> "Init_sut") && (List.length v.arguments >= 1) && ((List.hd v.arguments).type_.name = "t") &&
+  (v.name <> "Init_sut") && (List.length v.arguments >= 1) &&
+  List.(length (find_all (fun (arg : Translated.ocaml_var) -> arg.type_.name = "t") v.arguments)) = 1  &&
   (List.for_all (fun (ret : Translated.ocaml_var) -> ret.type_.name <> "t") v.returns)
  in
- (*mk_stmable v = (the first special argument of v : t, v with remaining arguments )*)
+ (*mk_stmable v = (the special argument of v : t, v with remaining arguments )*)
  let make_stmable (v: Translated.value) =
-   ((List.hd v.arguments).name, {v with arguments = (List.tl v.arguments)}) in
+     let args = enum v.arguments in
+    let targ_indexes =  List.find_all
+       (fun ((_, arg): int * Translated.ocaml_var) ->  arg.type_.name = "t" )
+       args in
+   assert (List.length targ_indexes = 1);
+   let (index, arg) = List.hd targ_indexes in 
+   ({index; arg = arg.name},
+    {v with arguments = List.map snd (List.remove_assoc index args)}) in
  let out = List.fold_right (fun item acc -> match item with
-      | Value v when (is_stmable v) -> 
-        let (targ_name, v) = make_stmable v in
+    | Value v when (is_stmable v) ->  let (targ, v) = make_stmable v in
          (match (safe_add v.name
-                   {targ_name; 
+                   {targ; 
                     args = List.map mk_ocaml_var v.arguments;
                     (*^ gospel does not allow you to unpack tuples in arguments,
                     so all of these are actually distinct args*)
@@ -149,7 +159,7 @@ let make_state ?(init_state = false)
   *)
   let get_field_rhs ?(error = "Unknown") (equations: Translated.postcondition list)
       (field: string)
-      (prefix: string) : int * expression  =
+      (prefix: string) : (int * expression) option  =
     let field = Printf.sprintf "%s.%s" prefix field in
     ( match List.find_opt (fun (_, postcond) ->
           match postcond.post.translation with
@@ -157,29 +167,30 @@ let make_state ?(init_state = false)
                       ((not postcond.contains_returns) || init_state)
           | _ -> false 
         ) (enum equations) with (*found a term which sets the field name equal to something*)
-        Some (i, postcond) -> (i, (postcond.post.translation
+        Some (i, postcond) -> Some (i, (postcond.post.translation
                                    |> Result.get_ok |> get_rhs_exn))
       | None ->
         (match List.find_opt (fun postcond ->
               match postcond.post.translation with
                 Ok exp -> (get_lhs exp = Some field)
-              | _ -> false 
+             | _ -> false 
             ) equations with
-          | None -> raise (Failure (Printf.sprintf "field %s undefined in %s" field error))
-          | Some postcond -> Printf.eprintf "Error: field %s undefined in %s\n(Postcondition %s cannot be used because it refers to the return value, which cannot define the state)\n%!"
+          | None -> Printf.eprintf "warning:field %s undefined in %s\n%!" field error; None
+          | Some postcond -> Printf.eprintf "warning: field %s undefined in %s\n(Postcondition %s cannot be used because it refers to the return value,
+which cannot define the state)\n%!"
                               field error postcond.post.txt
-            ;
-            raise (Failure "undefined field")
+            ; None          
         )) in
   S.fold 
     (fun field _ (next_state, used) -> 
        if cmd_item.pure then 
          (next_state, used)
-       else let (index_used, rhs) = get_field_rhs
-                ~error:cmd_item.name
-                cmd_item.postconditions field prefix in
-         assert(I.find index_used used = false);
-        (S.add field rhs next_state, I.add index_used true used)
+       else match get_field_rhs ~error:cmd_item.name
+                    cmd_item.postconditions field prefix with
+         | None -> (next_state, used)
+         | Some (index_used, rhs) ->
+           assert(I.find index_used used = false);
+           (S.add field rhs next_state, I.add index_used true used)
         )
     state
     (S.empty, used)
@@ -217,7 +228,7 @@ let next_state items (cmds: cmd) state : next_state * ((bool I.t) S.t)=
       let (used_post : bool I.t) = mk_used_posts cmd_item.postconditions in
       (*initialize them all to false as all of the ensures for this cmd are initially unused*)
       let (next, used_post)  =
-        make_state cmd_item state cmd_ele.targ_name used_post in
+        make_state cmd_item state cmd_ele.targ.arg used_post in
       ({pres; next}, used_post))
       cmds in
   unzip zipped 

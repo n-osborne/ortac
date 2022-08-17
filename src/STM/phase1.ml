@@ -60,8 +60,6 @@ let rec unsafe_term ~old_state_name ~state_arg ~driver (t : Tterm.term)
  (*below is really brittle but the correct change should happen in gospel.*)
   | Tapp (fs, [t]) when fs.ls_name.id_str = "integer_of_int" -> term t
   | Tapp (fs, []) when Symbols.(ls_equal fs fs_bool_true) -> [%expr true]
-  | Tapp (fs, []) when Symbols.(ls_equal fs fs_bool_true) -> [%expr true]
-  | Tapp (fs, []) when Symbols.(ls_equal fs fs_bool_true) -> [%expr true]
   | Tapp (fs, []) when Symbols.(ls_equal fs fs_bool_false) -> [%expr false]
   | Tapp (fs, tlist) when Symbols.is_fs_tuple fs ->
     List.map term tlist |> pexp_tuple
@@ -77,14 +75,24 @@ let rec unsafe_term ~old_state_name ~state_arg ~driver (t : Tterm.term)
     eapply f args
   | Tapp (ls, tlist) ->
      ( Drv.translate_stdlib ls driver |> function
-      | Some f -> eapply (evar f) (List.map term tlist)
+      | Some f ->
+        Printf.eprintf "gospel function being applied is:%s\n%!" f;
+        List.fold_left (fun _ s -> Printf.eprintf "attr is:%s\n%!" s) () ls.ls_name.id_attrs; 
+        eapply (evar f) (List.map term tlist)
       | None ->
         let func = ls.ls_name.id_str in
+        Printf.eprintf "function being applied is:%s\n%!" func;
+        List.fold_left (fun _ s -> Printf.eprintf "attr is:%s\n%!" s) () ls.ls_name.id_attrs; 
         if ls.ls_constr then
           (if tlist = [] then None
            else Some (List.map term tlist |> pexp_tuple))
           |> pexp_construct (lident func)
-        else kstr unsupported "function application `%s`" func)
+        else eapply (evar func) (List.map term tlist))
+          (* kstr unsupported "function application `%s`" func)
+             this is brittle because you aren't scoping these fns correctly,
+             relying that List.fn is actually Stdlib.List.fn and not Test_module.List.fn,
+             but you only need this until gospel expands its stdlib
+          *)
   | Tif (i, t, e) -> [%expr if [%e term i] then [%e term t] else [%e term e]]
   | Tlet (x, t1, t2) ->
     let x = str "%a" Ident.pp x.vs_name in
@@ -340,14 +348,20 @@ potentially changes the name of args so as not to clash with anything else in sc
 
 (*starts with empty driver (from ortac_core.signature)*)
 let signature ~driver s : Drv.t * string =
+let state_arg (args: Tast.lb_arg list) = List.find_opt (fun arg ->
+      let ty = Tast_helper.ty_of_lb_arg arg in
+      (match ty.ty_node with
+       | Tyvar tv -> tv.tv_name.id_str = "t" 
+       | Tyapp (ty, _) -> ty.ts_ident.id_str = "t")
+    ) args 
+in
   let old_state_name = new_name "old_state" in 
   (List.fold_left
     (fun driver (sig_item : Tast.signature_item) ->
        match sig_item.sig_desc with
          | Sig_val (vd, ghost) when vd.vd_args <> [] ->
-           let state_arg =
-             (try Some (Tast_helper.vs_of_lb_arg (List.hd vd.vd_args)) with
-              Invalid_argument _ -> None)
+           let state_arg = try Option.map Tast_helper.vs_of_lb_arg (state_arg vd.vd_args)
+             with Invalid_argument _ -> None 
            in
            (*start here change this to allow the state to be any of the args*)
            value ~old_state_name ~state_arg ~driver ~ghost vd
