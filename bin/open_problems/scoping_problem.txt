@@ -1,0 +1,16 @@
+type t
+(*@ model contents: integer *)
+
+
+(*
+requires (can be about the args (including the atom))
+any exp about (the args that aren't the sut) has to use functions from outside this file because you demand that all fns in this file take t as first arg
+if you write requires (get atom) = 5 my tool can't handle that
+but can you write that? yes. i demand in my assumptions that you can't because it refers to the atom directly in any conditions, can only refer to its fields.
+
+
+   gospel allows you to use functions declared in the same file in a specification
+   PROVIDED that those functions are pure
+   but the error message is quite misleading
+*)
+

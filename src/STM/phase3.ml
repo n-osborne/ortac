@@ -442,6 +442,7 @@ let structure _runtime ~old_state (stm : Ast3.stm) : Parsetree.structure_item li
   let at = [%stri module AT = STM.Make(CConf)] in 
   let tests = [%stri let _ = QCheck_runner.run_tests_main
                          (let count,name = 1000,"atomic test" in
+                          (*start here fix test name*)
                           [AT.agree_test     ~count ~name;
                            AT.agree_test_par ~count ~name;])] in 
   [incl; open1; open2; cconf; at; tests]

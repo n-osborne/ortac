@@ -1,0 +1,7 @@
+(*
+not sure if this is a good idea or not
+start here make each of the types self contained so you dont need to take in the cmd as arg
+in phase 3 and use stateful finds everywhere
+to do this you would need polymorphic records in some of the case generating fns
+*)
+

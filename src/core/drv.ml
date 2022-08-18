@@ -142,7 +142,10 @@ let stdlib_stm =
 
 let placeholder =
   [
+    ([ "String"; "iter" ], "Stdlib.String.iter");
     ([ "String"; "init" ], "Stdlib.String.init");
+    ([ "String"; "make" ], "Stdlib.String.make");
+    ([ "String"; "concat" ], "Stdlib.String.concat");
     ([ "String"; "get" ], "Stdlib.String.get");
     ([ "String"; "length" ], "Stdlib.String.length");
     ([ "Int"; "add" ], "Stdlib.Int.add");
@@ -151,6 +154,7 @@ let placeholder =
     ([ "List"; "length" ], "Stdlib.List.length");
     ([ "List"; "sort" ], "Stdlib.List.sort");
     ([ "Char"; "compare" ], "Stdlib.Char.compare");
+    ([ "Bytes"; "of_string" ], "Stdlib.Bytes.of_string");
   ]
 
 let init module_name env =

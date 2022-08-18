@@ -1,0 +1,8 @@
+(*if a model has type int and you do 
+model = 5 
+
+then this will be turned into (integer of int model) = (integer of int 5) 
+and your fn looking for next state will miss it
+
+solution: dissalow models of type int
+*)
