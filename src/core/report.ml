@@ -20,19 +20,20 @@ let value ppf (v : value) =
       terms ppf (List.map (fun post -> post.post) v.postconditions);
       xposts ppf v.xpostconditions
 
-let type_ ppf (t : type_) =
+let type_ ?(stm = false )ppf (t : type_) =
   match t.ghost with
   | Gospel.Tast.Ghost -> W.pp ppf (W.Ghost_type t.name, t.loc)
   | Nonghost ->
+    if stm then () else (*stm supports models*)
       List.iter
         (fun (m, _) ->
-          let t = (W.Unsupported_model (t.name, m), t.loc) in
-          W.pp ppf t)
+           let t = (W.Unsupported_model (t.name, m), t.loc) in
+           W.pp ppf t)
         t.models;
-      (* Result.iter_error (W.pp ppf) t.equality; *)
-      (* Result.iter_error (W.pp ppf) t.comparison; *)
-      (* Result.iter_error (W.pp ppf) t.copy; *)
-      invariants ppf t.invariants
+    (* Result.iter_error (W.pp ppf) t.equality; *)
+    (* Result.iter_error (W.pp ppf) t.comparison; *)
+    (* Result.iter_error (W.pp ppf) t.copy; *)
+    invariants ppf t.invariants
 
 let constant ppf (c : constant) =
   match c.ghost with
@@ -53,9 +54,9 @@ let predicate ppf (p : function_) =
 
 let axiom ppf (a : axiom) = term ppf a.definition
 
-let emit_warnings ppf driver =
+let emit_warnings ?(stm = false) ppf driver =
   Drv.iter_translation driver ~f:(function
-    | Type t -> type_ ppf t
+    | Type t -> type_ ~stm:stm ppf t
     | Value v -> value ppf v
     | Constant c -> constant ppf c
     | Function f -> function_ ppf f
