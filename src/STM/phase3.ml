@@ -29,11 +29,19 @@ let out =  match t with
   | List typ -> if args then
       let unparened =  "list " ^ (typ_to_str ~args:true ~paren_args:true ~capitalize:capitalize typ) in
       if paren_args then "(" ^ unparened ^ ")" else unparened 
-    else "list" in
-if capitalize then String.capitalize_ascii out else out 
+    else "list"
+  | Option typ -> if args then
+      let unparened =  "option " ^ (typ_to_str ~args:true ~paren_args:true ~capitalize:capitalize typ) in
+      if paren_args then "(" ^ unparened ^ ")" else unparened 
+    else "option"
+| Tuple _ -> raise (Failure "tupl in typ to str") in
+if capitalize then String.capitalize_ascii out else out
 
 let rec typ_to_core_type (t : Ast3.typ) : core_type =
-  ptyp_constr (t |> typ_to_str |> lident)  (List.map typ_to_core_type (Ast3.get_typ_args t))
+match t with
+| Tuple (a, b) -> ptyp_tuple [typ_to_core_type a; typ_to_core_type b]
+| _ -> ptyp_constr (t |> typ_to_str |> lident)  (List.map typ_to_core_type (Ast3.get_typ_args t))
+
 let mk_core_typ (arg : Ast3.ocaml_var) : core_type = typ_to_core_type arg.typ
 
 
@@ -136,16 +144,19 @@ let mk_map n rem : expression =
 
 (*which maps need to be defined to make a mapn,
 if tuple needs to be defined, if triple needs to be defined*)
-let rec maps_needed n acc : ISet.t * bool * bool =
+let maps_needed n acc : int list * bool * bool =
+let rec maps_needed_help n acc: ISet.t * bool * bool =
   if (n <= 3) then acc else
     let threes = n / 3 in
     let toplevel_groups = threes + (if (n mod 3) = 0 then 0 else 1) in
     (* this many groups at the top. at most one extra group because if there are two
                            extra they can be combined with map2,
        **)
-    let (acc, tuple, _) = maps_needed toplevel_groups acc in
+    let (acc, tuple, _) = maps_needed_help toplevel_groups acc in
     (ISet.add n acc, (n mod 3) = 2 || tuple, true)
-    (*triple must be true since you've divided into 3s *)
+    (*triple must be true since you've divided into 3s *) in
+maps_needed_help n ((fun (l, b1, b2) -> (ISet.of_list l, b1, b2)) acc)
+|> (fun (set, b1, b2) -> (ISet.elements set, b1, b2))
 
 
 (*functions that make the stm file*)
@@ -225,8 +236,8 @@ let mk_arb_cmd (cmd: Ast3.cmd) (arb_cmd: Ast3.arb_cmd) =
     if b then pexp_let Nonrecursive  [value_binding ~pat:(pvar name)
                                      ~expr:v] body
     else body in
-  let (maps_needed, tuple, triple) =
-    S.fold (fun _ gens acc -> maps_needed (List.length gens) acc) arb_cmd (ISet.empty, false, false)
+  let (maps_needed, tuple, triple)  =
+S.fold (fun _ gens acc -> maps_needed (List.length gens) acc) arb_cmd ([], false, false)
   in
   let mk_arb_cmd_body (cmd : Ast3.cmd) arb_cmd =
     (*for_oneof is args to Gen.oneof
@@ -250,7 +261,7 @@ let mk_arb_cmd (cmd: Ast3.cmd) (arb_cmd: Ast3.arb_cmd) =
           pexp_apply map ((Nolabel, fn)::(List.map (fun e -> (Nolabel, e)) gens)))
         (S.bindings for_oneof) in
     [%expr QCheck.make ~print:show_cmd Gen.(oneof [%e elist for_oneof ])] in
-  let body : expression = ISet.fold mk_map maps_needed (mk_arb_cmd_body cmd arb_cmd)
+  let body : expression = List.fold_right mk_map maps_needed (mk_arb_cmd_body cmd arb_cmd)
                           (*add all the maps on top of the body*)
                           |> conditional_add tuple (Phase1.new_name "tuple")  
                             (mk_fn_single ["a"; "b"] [%expr (a, b)])
@@ -412,6 +423,25 @@ let mk_postcond (cmd : Ast3.cmd) (postcond: Ast3.postcond )
   [%stri let postcond [%p pvar cmd_name] [%p pvar state_name] [%p pvar res_name] = [%e body]]
 
 
+let gospel_stdlib = [%stri
+module Gospel_stdlib = struct
+  let max_int = Z.of_int (Stdlib.Int.max_int)
+  let min_int = Z.of_int (Stdlib.Int.min_int)
+
+module List = struct
+let length l = Stdlib.List.length l |> Z.of_int
+let mapi f l =
+        Stdlib.List.mapi
+        (fun i a -> f (Z.of_int i) a) l
+let init i f = Stdlib.List.init (Z.to_int i)
+(fun i -> f (Z.of_int i))
+let nth l i = Stdlib.List.nth l (Z.to_int i)
+end
+
+end 
+]
+
+
 let structure _runtime ~old_state (stm : Ast3.stm) : Parsetree.structure_item list =
   let incl : Parsetree.structure_item =
     (pmod_ident (lident stm.module_name) |> include_infos |> pstr_include) in
@@ -434,16 +464,16 @@ let structure _runtime ~old_state (stm : Ast3.stm) : Parsetree.structure_item li
   let init_state = mk_init_state stm.init_state in
   let precond = mk_precond stm.cmd stm.precond ~state_name ~cmd_name in
   let postcond = mk_postcond stm.cmd stm.postcond ~state_name ~old_state ~cmd_name in
-  let cconf = pstr_module
-      (module_binding ~name:(Some "CConf" |> noloc)
+  let conf = pstr_module
+      (module_binding ~name:(Some "Conf" |> noloc)
          ~expr:(pmod_structure [sut ; state; cmd; init_sut; cleanup; arb_cmd;
                                 next_state; run; init_state; precond; postcond])
                           ) in 
-  let at = [%stri module AT = STM.Make(CConf)] in 
+  let at = [%stri module Test = STM.Make(Conf)] in 
   let tests = [%stri let _ = QCheck_runner.run_tests_main
-                         (let count,name = 1000,"atomic test" in
+                         (let count,name = 1000, [%e estring (stm.module_name ^ " test")] in
                           (*start here fix test name*)
-                          [AT.agree_test     ~count ~name;
-                           AT.agree_test_par ~count ~name;])] in 
-  [incl; open1; open2; cconf; at; tests]
+                          [Test.agree_test     ~count ~name;
+                           Test.agree_test_par ~count ~name;])] in 
+  [incl; open1; open2; gospel_stdlib; conf; at; tests]
 

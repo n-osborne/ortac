@@ -3,7 +3,7 @@ open Ortac_core
 let signature ~runtime ~module_name namespace (s : Gospel.Tast.signature) =
   let driver = Drv.init_stm module_name namespace in
   let (translated, old_state) = Phase1.signature ~driver s in
-  Report.emit_warnings Fmt.stderr translated;
+  Report.emit_warnings ~stm:true Fmt.stderr translated;
   let stm =  Phase2.stm translated in
   Phase3.structure runtime ~old_state stm
 

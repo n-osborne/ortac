@@ -37,7 +37,10 @@ let rec typ_of_type_ (error: string) (ty: type_)  =
   | [] -> base_typ_of_string ty.name
   | [arg] -> (match ty.name with
         "list" -> List (typ_of_type_ error arg)
+| "option" -> Option (typ_of_type_ error arg)
       | _ -> unsupported_type ty.name)
+| [arg1; arg2] -> (match ty.name with "tuple2" -> Tuple (typ_of_type_ error arg1, typ_of_type_ error arg2)
+| _ -> unsupported_type ty.name)
   | _ -> unsupported_type ty.name 
 
 
@@ -52,6 +55,8 @@ let rec mk_qcheck (typ: Ast3.typ) : expression =
   | Bool -> [%expr bool]
   | Unit -> [%expr unit]
   | List typ -> [%expr list [%e mk_qcheck typ]]
+  | Option typ -> [%expr opt [%e mk_qcheck typ]]
+| Tuple _ -> raise (Failure "tuple as argument")
 
 
 let mk_ocaml_var (v: Translated.ocaml_var) : Ast3.ocaml_var =

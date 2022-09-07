@@ -25,10 +25,14 @@ type typ =
   | Bool
   | Unit
   | List of typ
+  | Option of typ
+| Tuple of typ * typ 
 
 let get_typ_args t =
   match t with
   | List a -> [a]
+| Option a -> [a]
+| Tuple (a, b) -> [a; b]
   | Int | Integer | String | Bool| Unit | Char -> []
 
 
@@ -66,7 +70,7 @@ type next_state = next_state_case S.t
 type run = (ocaml_var list * bool) S.t
 
 
-(*cmd_constr -> all its requires*)
+(*API fn name -> all its requires*)
 type precond = expression list S.t 
 
 
