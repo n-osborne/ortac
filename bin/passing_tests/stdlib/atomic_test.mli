@@ -1,5 +1,5 @@
 type t
-(*@ model contents: int *)
+(*@ model contents: integer *)
 
 val init_sut: unit -> t
 (*@ ret = init_sut ()
@@ -29,7 +29,11 @@ ensures out = old r.contents
 val fetch_and_add : t -> int -> int
 (*@ out = fetch_and_add r n 
 modifies r.contents
-ensures r.contents = (old r.contents) + n
+ensures r.contents = (if ((old r.contents) + n > max_int) then 
+        (old r.contents) + n - max_int - 1 + min_int else
+        (if ((old r.contents) + n < min_int) then 
+        (old r.contents) + n - min_int + 1 + max_int else
+        (old r.contents) + n))
 ensures out = old r.contents
 *) 
 
@@ -38,7 +42,7 @@ val compare_and_set: t -> int -> int -> bool
 out = compare_and_set r seen v
 modifies r.contents
 ensures r.contents = (if ((old r.contents) = seen) 
-then v else old r.contents)
+then v else (old r.contents))
 ensures out <-> ((old r.contents) = seen)
 *)
 
