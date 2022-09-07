@@ -37,5 +37,5 @@ To satisfy dependencies (and suppress useless warnings), the dune file in ``outp
 )
 (env
   (dev
-    (flags (:standard -w -26 -w -27))))
+    (flags (:standard -w -26 -w -27 -w -32))))
 ```
