@@ -22,7 +22,7 @@ let term_printer ?(v = true) _text _global_loc (t : Tterm.term)  =
   if v then () else ();
   Fmt.str "%a" Tterm_printer.print_term t
 
-let _econst = function
+let econst = function
   | Pconst_integer (c, o) ->
     Pconst_integer (c, o) |> pexp_constant |> fun e ->
     eapply (evar "Z.of_int") [ e ]
@@ -55,10 +55,11 @@ let rec unsafe_term ~old_state_name ~state_arg ~driver (t : Tterm.term)
     | None -> unsupported "old operator used on a term that is not the state (STM)"
     | Some field_name ->  pexp_field (evar old_state_name) (lident field_name))
   | Tvar { vs_name; _ } -> evar (str "%a" Ident.pp vs_name)
-  | Tconst c -> pexp_constant c
+  | Tconst c -> econst c
   | Tfield (t, f) -> pexp_field (term t) (lident f.ls_name.id_str)
- (*below is really brittle but the correct change should happen in gospel.*)
-  | Tapp (fs, [t]) when fs.ls_name.id_str = "integer_of_int" -> term t
+ (*below is really brittle but the correct change should happen in gospel 
+   | Tapp (fs, []) when fs.ls_name.id_str = "max_int" -> [%expr Z.of_int (Stdlib.Int.max_int)]
+   | Tapp (fs, []) when fs.ls_name.id_str = "min_int" -> [%expr Z.of_int (Stdlib.Int.min_int)] *)
   | Tapp (fs, []) when Symbols.(ls_equal fs fs_bool_true) -> [%expr true]
   | Tapp (fs, []) when Symbols.(ls_equal fs fs_bool_false) -> [%expr false]
   | Tapp (fs, tlist) when Symbols.is_fs_tuple fs ->

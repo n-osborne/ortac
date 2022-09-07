@@ -112,50 +112,55 @@ let stdlib_stm =
     ([ "infix ::" ], "(::)");
     ([ "infix =" ], "(=)");
     ([ "prefix !" ], "!");
-    ([ "Gospelstdlib"; "infix +" ], "(+)");
-    ([ "Gospelstdlib"; "infix -" ], "(-)");
-    ([ "Gospelstdlib"; "infix *" ], "(*)");
-    ([ "Gospelstdlib"; "infix /" ], "(/)");
-    ([ "Gospelstdlib"; "infix <" ], "(<)");
-    ([ "Gospelstdlib"; "infix <=" ], "(<=)");
-    ([ "Gospelstdlib"; "infix >" ], "(>)");
-    ([ "Gospelstdlib"; "infix >=" ], "(>=)");
-    ([ "Gospelstdlib"; "mod" ], "Stdlib.Int.rem");
-    ([ "Gospelstdlib"; "logand" ], "Stdlib.Int.logand");
-    ([ "Gospelstdlib"; "abs" ], "Stdlib.Int.abs");
-    ([ "Gospelstdlib"; "min" ], "Stdlib.Int.min");
-    ([ "Gospelstdlib"; "max" ], "Stdlib.Int.max");
-    ([ "Gospelstdlib"; "succ" ], "Stdlib.Int.succ");
-    ([ "Gospelstdlib"; "pred" ], "Stdlib.Int.pred");
-    ([ "Gospelstdlib"; "List"; "init" ], "Stdlib.List.init");
-    ([ "Gospelstdlib"; "List"; "init" ], "Stdlib.List.init");
-    ([ "Gospelstdlib"; "List"; "nth" ], "Stdlib.List.nth");
-    ([ "Gospelstdlib"; "List"; "mapi" ], "Stdlib.List.mapi");
+    ([ "Gospelstdlib"; "infix +" ], "Z.add");
+    ([ "Gospelstdlib"; "infix -" ], "Z.sub");
+    ([ "Gospelstdlib"; "infix *" ], "Z.mul");
+    ([ "Gospelstdlib"; "infix /" ], "Z.div");
+    ([ "Gospelstdlib"; "mod" ], "Z.rem");
+    ([ "Gospelstdlib"; "logand" ], "Z.logand");
+    ([ "Gospelstdlib"; "prefix -" ], "Z.neg");
+    ([ "Gospelstdlib"; "infix >" ], "Z.gt");
+    ([ "Gospelstdlib"; "infix >=" ], "Z.geq");
+    ([ "Gospelstdlib"; "infix <" ], "Z.lt");
+    ([ "Gospelstdlib"; "infix <=" ], "Z.leq");
+    ([ "Gospelstdlib"; "integer_of_int" ], "Z.of_int");
+    ([ "Gospelstdlib"; "abs" ], "Z.abs");
+    ([ "Gospelstdlib"; "min" ], "Z.min");
+    ([ "Gospelstdlib"; "max" ], "Z.max");
+    ([ "Gospelstdlib"; "succ" ], "Z.succ");
+    ([ "Gospelstdlib"; "pred" ], "Z.pred");
+([ "Gospelstdlib"; "List"; "fold_right" ], "Stdlib.List.fold_right");
+([ "Gospelstdlib"; "List"; "fold_left" ], "Stdlib.List.fold_left");
+([ "Gospelstdlib"; "List"; "map" ], "Stdlib.List.map");
+  (*  ([ "Gospelstdlib"; "List"; "mapi" ], "Stdlib.List.mapi");
     ([ "Gospelstdlib"; "List"; "for_all" ], "Stdlib.List.for_all");
+    ([ "Gospelstdlib"; "List"; "length" ], "Stdlib.List.length"); *)
     ([ "Gospelstdlib"; "List"; "mem" ], "Stdlib.List.mem");
-    ([ "Gospelstdlib"; "List"; "length" ], "Stdlib.List.length");
     ([ "Gospelstdlib"; "snd" ], "snd");
     ([ "Gospelstdlib"; "fst" ], "fst");
+    ([ "Gospelstdlib"; "List"; "_exists" ], "Stdlib.List.exists");
+    ([ "Gospelstdlib"; "List"; "rev" ], "Stdlib.List.rev");
   ]
 
 (*hack until gospel supports more list/string functions *)
 
 let placeholder =
   [
-    ([ "String"; "iter" ], "Stdlib.String.iter");
+    (* ([ "String"; "iter" ], "Stdlib.String.iter");
     ([ "String"; "init" ], "Stdlib.String.init");
     ([ "String"; "make" ], "Stdlib.String.make");
     ([ "String"; "concat" ], "Stdlib.String.concat");
     ([ "String"; "get" ], "Stdlib.String.get");
     ([ "String"; "length" ], "Stdlib.String.length");
     ([ "Int"; "add" ], "Stdlib.Int.add");
-    ([ "Int"; "sub" ], "Stdlib.Int.sub");
-    ([ "List"; "mapi" ], "Stdlib.List.mapi");
-    ([ "List"; "length" ], "Stdlib.List.length");
-    ([ "List"; "sort" ], "Stdlib.List.sort");
-    ([ "Char"; "compare" ], "Stdlib.Char.compare");
-    ([ "Bytes"; "of_string" ], "Stdlib.Bytes.of_string");
-  ]
+    ([ "Int"; "sub" ], "Stdlib.Int.sub"); *)
+   ([ "Gospelstdlib"; "List"; "init" ], "Gospel_stdlib.List.init");
+    ([ "List"; "mapi" ], "Gospel_stdlib.List.mapi");
+    ([ "List"; "length" ], "Gospel_stdlib.List.length");
+    ([ "Gospelstdlib"; "List"; "nth" ], "Gospel_stdlib.List.nth");
+   ([ "Gospelstdlib"; "max_int" ], "Gospel_stdlib.max_int");
+   ([ "Gospelstdlib"; "min_int" ], "Gospel_stdlib.min_int");
+ ]
 
 let init module_name env =
   let stdlib =
