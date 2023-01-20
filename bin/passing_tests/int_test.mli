@@ -3,11 +3,11 @@
 type t
 (*@ model contents: int *)
 
-val init_sut: unit -> t
+val init_sut : unit -> t
 (*@ ret = init_sut ()
- ensures ret.contents = 42 *)
+  ensures ret.contents = 42 *)
 
 val get : t -> int
 (*@
-v = get r
-pure*)
+  v = get r
+  pure*)

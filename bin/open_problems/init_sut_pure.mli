@@ -1,4 +1,4 @@
 type t
 
-val init_sut: unit -> t
+val init_sut : unit -> t
 (*@ pure *)

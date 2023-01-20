@@ -13,5 +13,4 @@
   ortac_monolith
   ortac_STM
   ppxlib
-  ppxlib.ast)
-)
+  ppxlib.ast))

@@ -24,10 +24,11 @@ let rec type_of_ty ~driver (ty : Ttypes.ty) =
       match Drv.get_type ts driver with
       | None ->
           let mutable_ = Mutability.ty ~driver ty in
-          let (argless: Translated.type_) = Translated.type_
-              ~name:ts.ts_ident.id_str ~loc:ts.ts_ident.id_loc
-            ~mutable_ ~ghost:Tast.Nonghost in
-          {argless with args} 
+          let (argless : Translated.type_) =
+            Translated.type_ ~name:ts.ts_ident.id_str ~loc:ts.ts_ident.id_loc
+              ~mutable_ ~ghost:Tast.Nonghost
+          in
+          { argless with args }
       | Some type_ -> type_)
 
 let vsname (vs : Symbols.vsymbol) = Fmt.str "%a" Tast.Ident.pp vs.vs_name

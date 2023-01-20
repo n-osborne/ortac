@@ -66,7 +66,7 @@ type xpost = {
   translation : (cases, W.t list) result;
 }
 
-type postcondition = {post : term; contains_returns: bool}
+type postcondition = { post : term; contains_returns : bool }
 
 type value = {
   name : string;
@@ -77,7 +77,7 @@ type value = {
   ghost : Gospel.Tast.ghost;
   pure : bool;
   checks : check list;
-  preconditions : term list; 
+  preconditions : term list;
   postconditions : postcondition list;
   (*the contains_returns is only for the STM plugin, the other plugins can use any value
   *)

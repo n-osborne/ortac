@@ -19,7 +19,7 @@ let main frontend input output () =
     match frontend with
     | Default -> Ortac_default.generate input channel
     | Monolith -> Ortac_monolith.generate input channel
-| STM -> Ortac_STM.generate input channel
+    | STM -> Ortac_STM.generate input channel
   with Gospel.Warnings.Error e ->
     Fmt.epr "%a@." Gospel.Warnings.pp e;
     exit 1

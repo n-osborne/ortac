@@ -1,7 +1,7 @@
 module W = Warnings
 open Gospel
 
-val pattern: Tterm.pattern_node -> Ppxlib.pattern
+val pattern : Tterm.pattern_node -> Ppxlib.pattern
 
 val with_checks :
   driver:Drv.t ->
@@ -50,7 +50,8 @@ val with_constant_checks :
   Translated.constant ->
   Translated.constant
 
-val xpost_pattern : driver:Drv.t -> string -> Tterm.pattern_node -> Ppxlib.pattern
+val xpost_pattern :
+  driver:Drv.t -> string -> Tterm.pattern_node -> Ppxlib.pattern
 
 val with_xposts :
   driver:Drv.t ->
