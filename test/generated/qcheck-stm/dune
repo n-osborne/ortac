@@ -1,0 +1,23 @@
+(library
+  (name stm_example)
+  (modules stm_example))
+
+(executable
+  (name wrapper)
+  (modules wrapper)
+  (libraries stm_example qcheck-stm.domain qcheck-core zarith))
+
+(rule
+ (target wrapper.ml)
+ (action
+  (with-stderr-to
+   errors
+   (run ortac -f STM -o %{target} %{dep:stm_example.mli}))))
+
+(rule
+ (alias runtest)
+ (package ortac)
+ (action
+  (progn
+   (diff errors.expected errors)
+   (diff wrapper.expected.ml wrapper.ml))))

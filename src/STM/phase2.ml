@@ -285,7 +285,7 @@ let next_state items (cmds : cmd) state : next_state * bool I.t S.t =
           List.map
             (fun (pre : Translated.term) -> pre.translation |> Result.get_ok)
             cmd_item.preconditions
-          @ translate_checks cmd_item.checks
+          @ (translate_checks cmd_item.checks |> List.map snd)
         in
         (*silly processing to get the check*)
         let (used_post : bool I.t) = mk_used_posts cmd_item.postconditions in
@@ -319,7 +319,7 @@ let postcond items (cmds : cmd) (used : bool I.t S.t) : postcond =
   S.mapi
     (fun cmd _ ->
       let cmd_item = Option.get (find_value items cmd) in
-      let checks = translate_checks cmd_item.checks in
+      let checks = translate_checks cmd_item.checks |> List.map snd in
       let raises : Ast3.xpost list =
         List.map
           (fun xpost ->

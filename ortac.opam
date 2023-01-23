@@ -32,6 +32,8 @@ depends: [
   "fmt"
   "ppxlib" {>= "0.26.0"}
   "qcheck"   {>= "0.19.1"}
+  "qcheck-stm"
+  "qcheck-multicoretests-util"
   "gospel"
   "alcotest" {with-test}
   "pprint" {with-test}

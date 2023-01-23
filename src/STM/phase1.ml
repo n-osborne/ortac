@@ -218,7 +218,7 @@ let with_checks ~old_state_name ~state_arg ~driver (checks : Tterm.term list)
         let term = term ~old_state_name ~state_arg ~driver "checks" t in
         let translations =
           Result.map
-            (fun exp -> (exp, exp))
+            (fun exp -> (("FIXME", exp), exp))
               (* because you dont need two checks for
                  does raise and doesnt raise invalid_arg
                                         just get the original check content
