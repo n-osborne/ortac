@@ -31,7 +31,8 @@ depends: [
   "cmdliner" {>= "1.1.0"}
   "fmt"
   "ppxlib" {>= "0.26.0"}
-  "qcheck"   {>= "0.19.1"}
+  "qcheck-core" {>= "0.20"}
+  "qcheck" {>= "0.20"}
   "qcheck-stm"
   "qcheck-multicoretests-util"
   "gospel"

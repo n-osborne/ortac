@@ -2,17 +2,21 @@
   (name stm_example)
   (modules stm_example))
 
-(executable
-  (name wrapper)
-  (modules wrapper)
-  (libraries stm_example qcheck-stm.domain qcheck-core zarith))
-
 (rule
  (target wrapper.ml)
  (action
   (with-stderr-to
    errors
    (run ortac -f STM -o %{target} %{dep:stm_example.mli}))))
+
+(executable
+  (name wrapper)
+  (preprocess (pps ppx_deriving.show))
+  (flags :standard -w -32-26-27)
+  (modules wrapper)
+  (libraries stm_example qcheck-stm.stm qcheck-stm.domain qcheck-core qcheck-core.runner zarith)
+  ; (action (run %{test} --verbose))
+  )
 
 (rule
  (alias runtest)

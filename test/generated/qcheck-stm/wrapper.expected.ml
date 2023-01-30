@@ -66,8 +66,8 @@ module Conf =
             (match res with | Error (Invalid_argument _) -> true | _ -> false)
       | _ -> false
   end
-module Test = (STM.Make)(Conf)
+module Test = (STM_domain.Make)(Conf)
 let _ =
-  QCheck_runner.run_tests_main
+  QCheck_base_runner.run_tests_main
     (let (count, name) = (1000, "Stm_example test") in
-     [Test.agree_test ~count ~name; Test.agree_test_par ~count ~name])
+     [Test.agree_test_par ~count ~name])

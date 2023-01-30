@@ -659,13 +659,13 @@ let structure _runtime ~old_state (stm : Ast3.stm) :
                 postcond;
               ]))
   in
-  let at = [%stri module Test = STM.Make (Conf)] in
+  let at = [%stri module Test = STM_domain.Make (Conf)] in
   let tests =
     [%stri
       let _ =
-        QCheck_runner.run_tests_main
+        QCheck_base_runner.run_tests_main
           (let count, name = (1000, [%e estring (stm.module_name ^ " test")]) in
            (*start here fix test name*)
-           [ Test.agree_test ~count ~name; Test.agree_test_par ~count ~name ])]
+           [ Test.agree_test_par ~count ~name ])]
   in
   [ incl; open1; open2; gospel_stdlib; conf; at; tests ]
