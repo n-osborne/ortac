@@ -30,10 +30,9 @@
 
 type 'a t = 'a array
 (** An alias for the type of arrays. *)
-(*@ with t
-    model length : int
-    model mutable contents : 'a seq
-    invariant Seq.length t.contents = t.length *)
+(*@ model length : int
+    mutable model contents : 'a seq
+*)
 
 external length : 'a array -> int = "%array_length"
 (** Return the length (number of elements) of the given array. *)
@@ -49,7 +48,7 @@ external get : 'a array -> int -> 'a = "%array_safe_get"
    @raise Invalid_argument
    if [n] is outside the range 0 to [(length a - 1)]. *)
 (*@ a = get arr n
-    raises Invalid_argument -> n < 0 \/ n >= arr.length
+    raises Invalid_argument _ -> n < 0 \/ n >= arr.length
     ensures a = Seq.get arr.contents n *)
 
 external set : 'a array -> int -> 'a -> unit = "%array_safe_set"
@@ -60,7 +59,7 @@ external set : 'a array -> int -> 'a -> unit = "%array_safe_set"
    @raise Invalid_argument
    if [n] is outside the range 0 to [length a - 1]. *)
 (*@ set arr n a
-    raises Invalid_argument -> n < 0 \/ n >= arr.length
+    raises Invalid_argument _ -> n < 0 \/ n >= arr.length
     modifies arr.contents
     ensures forall i. 0 <= i < arr.length -> i <> n -> Seq.get arr.contents i = Seq.get (old arr.contents) i
     ensures Seq.get arr.contents n = a *)
@@ -124,7 +123,7 @@ val sub : 'a array -> int -> int -> 'a array
    designate a valid subarray of [a]; that is, if
    [pos < 0], or [len < 0], or [pos + len > length a]. *)
 (*@ res = sub arr pos len
-    raises Invalid_argument -> pos < 0 \/ len < 0 \/ pos + len > arr.length
+    raises Invalid_argument _ -> pos < 0 \/ len < 0 \/ pos + len > arr.length
     ensures res.length = len
     ensures forall i. 0 <= i < len -> Seq.get res.contents i = Seq.get arr.contents (i + pos) *)
 
@@ -142,7 +141,7 @@ val fill : 'a array -> int -> int -> 'a -> unit
    @raise Invalid_argument if [pos] and [len] do not
    designate a valid subarray of [a]. *)
 (*@ fill arr pos len x
-    raises Invalid_argument -> pos < 0 \/ len < 0 \/ pos + len > arr.length
+    raises Invalid_argument _ -> pos < 0 \/ len < 0 \/ pos + len > arr.length
     modifies arr.contents
     ensures forall i. pos <= i < pos + len -> Seq.get arr.contents i = x
     ensures forall i. 0 <= i < arr.length -> i < pos \/ i >= pos + len -> Seq.get arr.contents i = Seq.get (old arr.contents) i *)
@@ -260,7 +259,7 @@ val mem : 'a -> 'a array -> bool
     [compare a x = 0]).
     @since 4.03.0 *)
 (*@ b = mem a arr
-    ensures b = Seq.mem a arr.contents *)
+    ensures b = Seq.mem arr.contents a *)
 
 val memq : 'a -> 'a array -> bool
 (** Same as {!mem}, but uses physical equality
