@@ -28,18 +28,18 @@
     {!StdLabels} module.
 *)
 
-type 'a t = 'a array
+type 'a t (* = 'a array *)
 (** An alias for the type of arrays. *)
 (*@ model length : int
     mutable model contents : 'a seq
 *)
 
-external length : 'a array -> int = "%array_length"
+external length : 'a t -> int = "%array_length"
 (** Return the length (number of elements) of the given array. *)
 (*@ i = length arr
     ensures i = arr.length *)
 
-external get : 'a array -> int -> 'a = "%array_safe_get"
+external get : 'a t -> int -> 'a = "%array_safe_get"
 (** [get a n] returns the element number [n] of array [a].
    The first element has number 0.
    The last element has number [length a - 1].
@@ -51,7 +51,7 @@ external get : 'a array -> int -> 'a = "%array_safe_get"
     raises Invalid_argument _ -> n < 0 \/ n >= arr.length
     ensures a = Seq.get arr.contents n *)
 
-external set : 'a array -> int -> 'a -> unit = "%array_safe_set"
+external set : 'a t -> int -> 'a -> unit = "%array_safe_set"
 (** [set a n x] modifies array [a] in place, replacing
    element number [n] with [x].
    You can also write [a.(n) <- x] instead of [set a n x].
@@ -64,7 +64,7 @@ external set : 'a array -> int -> 'a -> unit = "%array_safe_set"
     ensures forall i. 0 <= i < arr.length -> i <> n -> Seq.get arr.contents i = Seq.get (old arr.contents) i
     ensures Seq.get arr.contents n = a *)
 
-external make : int -> 'a -> 'a array = "caml_make_vect"
+external make : int -> 'a -> 'a t = "caml_make_vect"
 (** [make n x] returns a fresh array of length [n],
    initialized with [x].
    All the elements of this new array are initially
@@ -77,7 +77,7 @@ external make : int -> 'a -> 'a array = "caml_make_vect"
    If the value of [x] is a floating-point number, then the maximum
    size is only [Sys.max_array_length / 2].*)
 
-val sub : 'a array -> int -> int -> 'a array
+val sub : 'a t -> int -> int -> 'a t
 (** [sub a pos len] returns a fresh array of length [len],
    containing the elements number [pos] to [pos + len - 1]
    of array [a].
@@ -90,14 +90,14 @@ val sub : 'a array -> int -> int -> 'a array
     ensures res.length = len
     ensures forall i. 0 <= i < len -> Seq.get res.contents i = Seq.get arr.contents (i + pos) *)
 
-val copy : 'a array -> 'a array
+val copy : 'a t -> 'a t
 (** [copy a] returns a copy of [a], that is, a fresh array
    containing the same elements as [a]. *)
 (*@ res = copy arr
     ensures res.length = arr.length
     ensures res.contents = arr.contents *)
 
-val fill : 'a array -> int -> int -> 'a -> unit
+val fill : 'a t -> int -> int -> 'a -> unit
 (** [fill a pos len x] modifies the array [a] in place,
    storing [x] in elements number [pos] to [pos + len - 1].
 
@@ -109,13 +109,13 @@ val fill : 'a array -> int -> int -> 'a -> unit
     ensures forall i. pos <= i < pos + len -> Seq.get arr.contents i = x
     ensures forall i. 0 <= i < arr.length -> i < pos \/ i >= pos + len -> Seq.get arr.contents i = Seq.get (old arr.contents) i *)
 
-val to_list : 'a array -> 'a list
+val to_list : 'a t -> 'a list
 (** [to_list a] returns the list of all the elements of [a]. *)
 (*@ l = to_list arr
     ensures List.length l = arr.length
     ensures forall i. 0 <= i < arr.length -> List.nth l i = Seq.get arr.contents i *)
 
-val mem : 'a -> 'a array -> bool
+val mem : 'a -> 'a t -> bool
 (** [mem a set] is true if and only if [a] is structurally equal
     to an element of [l] (i.e. there is an [x] in [l] such that
     [compare a x = 0]).
