@@ -77,6 +77,8 @@ external make : int -> char -> char t = "caml_make_vect"
    If the value of [x] is a floating-point number, then the maximum
    size is only [Sys.max_array_length / 2].*)
 
+(*@ val init_sut : unit -> char t *)
+
 val sub : char t -> int -> int -> char t
 (** [sub a pos len] returns a fresh array of length [len],
    containing the elements number [pos] to [pos + len - 1]
