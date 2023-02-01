@@ -32,7 +32,7 @@ let rec typ_of_type_ (error : string) (ty : type_) =
   | [] -> base_typ_of_string ty.name
   | [ arg ] -> (
       match ty.name with
-      | "list" -> List (typ_of_type_ error arg)
+      | "list" | "seq" -> List (typ_of_type_ error arg)
       | "option" -> Option (typ_of_type_ error arg)
       | _ -> unsupported_type ty.name)
   | [ arg1; arg2 ] -> (
