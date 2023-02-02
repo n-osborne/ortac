@@ -335,7 +335,7 @@ let postcond items (cmds : cmd) (used : bool I.t S.t) : postcond =
         List.filter_map
           (fun (i, postcond) ->
             if not (I.find i used) then
-              Some (postcond.post.translation |> Result.get_ok)
+              Result.to_option postcond.post.translation
             else None)
           (enum cmd_item.postconditions)
       in
