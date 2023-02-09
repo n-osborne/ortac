@@ -7,3 +7,9 @@
     + how to instantiate 'a (type variabes) (even give a QCheck.gen/arb)
 5. make stm-ortac know about immutabilty of models
 6. ortac should know about modifies clauses before branching to STM -- does default need them too?
+    - in gospel, `modifies` clause contains a list of term (hopefully, something
+      that evaluates to a `Tvar` or a `Tfield`). In the current state, ortac keeps
+      the string representation of the term alongside its translation (or why
+      it did not manage to translate). Maybe we could also keep the terms
+      themselves in order to keep the information from its structure. It could
+      be easier to work with than the two other.
