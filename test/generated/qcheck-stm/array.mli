@@ -31,7 +31,7 @@
 type 'a t (* = char array *)
 (** An alias for the type of arrays. *)
 (*@ model length : int
-    mutable model contents : char seq
+    mutable model contents : char list
 *)
 
 external length : char t -> int = "%array_length"
@@ -49,7 +49,7 @@ external get : char t -> int -> char = "%array_safe_get"
    if [n] is outside the range 0 to [(length a - 1)]. *)
 (*@ a = get arr n
     raises Invalid_argument _ -> n < 0 \/ n >= arr.length
-    ensures a = Seq.get arr.contents n *)
+    ensures a = List.nth arr.contents n *)
 
 external set : char t -> int -> char -> unit = "%array_safe_set"
 (** [set a n x] modifies array [a] in place, replacing
@@ -61,8 +61,8 @@ external set : char t -> int -> char -> unit = "%array_safe_set"
 (*@ set arr n a
     raises Invalid_argument _ -> n < 0 \/ n >= arr.length
     modifies arr.contents
-    ensures forall i. 0 <= i < arr.length -> i <> n -> Seq.get arr.contents i = Seq.get (old arr.contents) i
-    ensures Seq.get arr.contents n = a *)
+    ensures forall i. 0 <= i < arr.length -> i <> n -> List.nth arr.contents i = List.nth (old arr.contents) i
+    ensures List.nth arr.contents n = a *)
 
 external make : int -> char -> char t = "caml_make_vect"
 (** [make n x] returns a fresh array of length [n],
@@ -90,7 +90,7 @@ val sub : char t -> int -> int -> char t
 (*@ res = sub arr pos len
     raises Invalid_argument _ -> pos < 0 \/ len < 0 \/ pos + len > arr.length
     ensures res.length = len
-    ensures forall i. 0 <= i < len -> Seq.get res.contents i = Seq.get arr.contents (i + pos) *)
+    ensures forall i. 0 <= i < len -> List.nth res.contents i = List.nth arr.contents (i + pos) *)
 
 val copy : char t -> char t
 (** [copy a] returns a copy of [a], that is, a fresh array
@@ -108,14 +108,14 @@ val fill : char t -> int -> int -> char -> unit
 (*@ fill arr pos len x
     raises Invalid_argument _ -> pos < 0 \/ len < 0 \/ pos + len > arr.length
     modifies arr.contents
-    ensures forall i. pos <= i < pos + len -> Seq.get arr.contents i = x
-    ensures forall i. 0 <= i < arr.length -> i < pos \/ i >= pos + len -> Seq.get arr.contents i = Seq.get (old arr.contents) i *)
+    ensures forall i. pos <= i < pos + len -> List.nth arr.contents i = x
+    ensures forall i. 0 <= i < arr.length -> i < pos \/ i >= pos + len -> List.nth arr.contents i = List.nth (old arr.contents) i *)
 
 val to_list : char t -> char list
 (** [to_list a] returns the list of all the elements of [a]. *)
 (*@ l = to_list arr
     ensures List.length l = arr.length
-    ensures forall i. 0 <= i < arr.length -> List.nth l i = Seq.get arr.contents i *)
+    ensures forall i. 0 <= i < arr.length -> List.nth l i = List.nth arr.contents i *)
 
 val mem : char -> char t -> bool
 (** [mem a set] is true if and only if [a] is structurally equal
@@ -123,5 +123,5 @@ val mem : char -> char t -> bool
     [compare a x = 0]).
     @since 4.03.0 *)
 (*@ b = mem a arr
-    ensures b = Seq.mem arr.contents a *)
+    ensures b = List.mem a arr.contents *)
 
