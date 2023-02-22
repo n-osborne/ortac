@@ -3,6 +3,8 @@ open Gospel
 
 val pattern : Tterm.pattern_node -> Ppxlib.pattern
 
+val unsafe_term : driver:Drv.t -> Tterm.term -> Ppxlib.expression
+
 val with_checks :
   driver:Drv.t ->
   term_printer:(Tterm.term -> string) ->
