@@ -29,7 +29,11 @@ let is_stmable config vd =
       && List.for_all (lb_arg_is_not_of_type config.sut) vd.vd_ret
 
 let val_desc config vd =
-  if is_stmable config vd then Some { id = vd.vd_name.id_str } else None
+  if is_stmable config vd then
+    let id = vd.vd_name.id_str in
+    let ty = vd.vd_type in
+    Some { id; ty }
+  else None
 
 let sig_item config s =
   match s.sig_desc with
