@@ -49,8 +49,7 @@ There is already a minimal implementation of the initialisation function.
 
 What remains to do is:
 
-1. [ ] allow for the `init_sut` function to be expressed in a `gospel` attribute
-  (*ie* as a ghost function)
+1. [ ] add user given `init_state` function
 2. [ ] allow for the `init_sut` function to be a function call (*eg* `make 16 0`)
 3. [ ] search for `sut` and `init` in one pass over the ast
 4. [ ] go through the entire signature to deal with `gospel` function and
@@ -114,3 +113,21 @@ This could lead to already tackle the next task:
 
 Initially, `ast3` has been implemented when dealing with what is now
 `ortac.default` internal representation. This can be cleaned up a bit.
+
+
+## Regarding the sut type
+
+1. determine which function parameter does not appear in the cmd's constructors
+2. instatiate type arguments
+3. choose the right QCheck generator for type argument
+
+### Example: Array.set
+
+```ocaml
+Array.set : 'a array -> int -> 'a -> unit
+type sut = char array
+type cmd =
+  | Set of (int * char)
+let arb_gen = QCheck.Gen.(pure (fun i c -> Set i c) <*> int_gen <*> char_gen)
+
+```
