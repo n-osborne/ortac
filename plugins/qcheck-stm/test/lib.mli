@@ -1,9 +1,8 @@
-type sut
+type ('a, 'b) t
 
-val good_init : unit -> sut
-val bad_init : sut
-val no_sut : int -> int
-val constant : int
-val multiple_sut : sut -> sut -> int
-val f : sut -> int
-val g : int -> sut -> bool
+val make : 'a -> 'b -> ('a, 'b) t
+val f : 'a -> ('a, 'b) t -> bool
+val g : 'a -> ('b, 'a) t -> int
+val h : ('a, 'b) t -> ('b, 'a) t -> bool
+val i : (int, int) t -> bool
+val j : (char, int) t -> 'a -> bool

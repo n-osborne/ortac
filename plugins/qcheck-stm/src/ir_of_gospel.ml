@@ -1,49 +1,96 @@
 open Gospel
 open Tast
-open Reserr
-open Config
 
-(* XXX TODO should check the compatibility of the argument type too *)
-let lb_arg_is_of_type ts lb =
-  match lb with
-  | Lunit -> false
-  | Lnone vs | Loptional vs | Lnamed vs | Lghost vs -> (
-      match vs.vs_ty.ty_node with
-      | Tyapp (ts', _) -> Ttypes.ts_equal ts ts'
-      | _ -> false)
+let type_is_sut_type config ty =
+  let sut_type_name = Config.get_sut_type_name config in
+  let open Ppxlib in
+  match ty.ptyp_desc with
+  | Ptyp_constr (lid, _) -> lid.txt = sut_type_name
+  | _ -> false
 
-let lb_arg_is_not_of_type ty lb_arg = not (lb_arg_is_of_type ty lb_arg)
+let type_is_not_sut_type config ty = not (type_is_sut_type config ty)
 
 let constant_test vd =
+  let open Reserr in
   match vd.vd_args with
   | [] -> (Constant_value vd.vd_name.id_str, vd.vd_loc) |> error
-  | _ -> ok vd
+  | _ -> ok ()
 
-let argument_test ty vd =
-  let p = lb_arg_is_of_type ty in
-  let rec exactly_one = function
-    | [] -> (No_sut_argument vd.vd_name.id_str, vd.vd_loc) |> error
-    | x :: xs when p x ->
-        if List.exists p xs then
-          (Multiple_sut_arguments vd.vd_name.id_str, vd.vd_loc) |> error
-        else ok vd
-    | _ :: xs -> exactly_one xs
+let is_a_function ty =
+  let open Ppxlib in
+  match ty.ptyp_desc with Ptyp_arrow (_, _, _) -> true | _ -> false
+
+let unify value_name sut_ty ty =
+  let open Ppxlib in
+  let open Reserr in
+  let add_if_needed a x i =
+    match List.assoc_opt a i with
+    | None -> ok ((a, x) :: i)
+    | Some y when x.ptyp_desc = y.ptyp_desc -> ok i
+    | _ -> error (Incompatible_type value_name, ty.ptyp_loc)
   in
-  exactly_one vd.vd_args
+  let rec aux i = function
+    | [], [] -> ok i
+    | x :: xs, y :: ys ->
+        let* i =
+          match (x.ptyp_desc, y.ptyp_desc) with
+          | _, Ptyp_var a -> add_if_needed a x i
+          | Ptyp_tuple xs, Ptyp_tuple ys -> aux i (xs, ys)
+          | Ptyp_constr (c, xs), Ptyp_constr (d, ys) when c.txt = d.txt ->
+              aux i (xs, ys)
+          | _ -> error (Incompatible_type value_name, ty.ptyp_loc)
+        in
+        aux i (xs, ys)
+    | _, _ -> error (Incompatible_type value_name, ty.ptyp_loc)
+  in
+  match (sut_ty.ptyp_desc, ty.ptyp_desc) with
+  | Ptyp_constr (t, args_sut), Ptyp_constr (t', args_ty) when t.txt = t'.txt ->
+      aux [] (args_sut, args_ty)
+  | _ -> failwith "Case should not happen in `unify'"
 
-let return_test ty vd =
-  if List.for_all (lb_arg_is_not_of_type ty) vd.vd_ret then ok vd
-  else (Returning_sut vd.vd_name.id_str, vd.vd_loc) |> error
-
-let value_id config vd =
-  let* _ = constant_test vd
-  and* _ = argument_test config.sut vd
-  and* _ = return_test config.sut vd in
-  ok vd.vd_name
+let ty_var_substitution config (vd : val_description) =
+  let value_name, value_type = (vd.vd_name.id_str, vd.vd_type) in
+  assert (is_a_function value_type);
+  let open Ppxlib in
+  let ret = function
+    | None -> Reserr.(error (No_sut_argument value_name, value_type.ptyp_loc))
+    | Some x -> Reserr.ok x
+  in
+  let rec aux seen ty =
+    match ty.ptyp_desc with
+    | Ptyp_any | Ptyp_var _ -> ret seen
+    | Ptyp_arrow (_, l, r) ->
+        if type_is_sut_type config l then
+          match seen with
+          | None ->
+              let open Reserr in
+              let* x = unify value_name config.sut_core_type l in
+              aux (Some x) r
+          | Some _ ->
+              Reserr.(
+                error (Multiple_sut_arguments value_name, value_type.ptyp_loc))
+        else aux seen r
+    | Ptyp_tuple elems ->
+        if List.for_all (type_is_not_sut_type config) elems then ret seen
+        else Reserr.(error (Returning_sut value_name, ty.ptyp_loc))
+    | Ptyp_constr (_, _) ->
+        if type_is_not_sut_type config ty then ret seen
+        else Reserr.(error (Returning_sut value_name, ty.ptyp_loc))
+    (* not supported *)
+    | Ptyp_object (_, _)
+    | Ptyp_class (_, _)
+    | Ptyp_alias (_, _)
+    | Ptyp_variant (_, _, _)
+    | Ptyp_poly (_, _)
+    | Ptyp_package _ | Ptyp_extension _ ->
+        failwith "not supported"
+  in
+  aux None value_type
 
 let val_desc config vd =
-  let* id = value_id config vd in
-  Ir.value id |> ok
+  let open Reserr in
+  let* () = constant_test vd and* inst = ty_var_substitution config vd in
+  Ir.value vd.vd_name vd.vd_type inst |> ok
 
 let sig_item config s =
   match s.sig_desc with
@@ -53,7 +100,6 @@ let sig_item config s =
 let signature config = List.filter_map (sig_item config)
 
 let run path init sut =
-  (* temporary implementation until Config uses the new Reserr *)
-  match Config.init path init sut with
-  | Ok (sigs, config) -> signature config sigs
-  | Error _err -> assert false
+  let open Reserr in
+  let* sigs, config = Config.init path init sut in
+  signature config sigs |> promote
