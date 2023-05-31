@@ -108,8 +108,8 @@ let str_of_ident = Fmt.str "%a" Gospel.Identifier.Ident.pp
 
 let mk_cmd_pattern value =
   let pat_args = function
-    | None -> punit
-    | Some x -> ppat_var (noloc (str_of_ident x))
+    | _, None -> punit
+    | _, Some x -> ppat_var (noloc (str_of_ident x))
   in
   let args =
     match value.args with
