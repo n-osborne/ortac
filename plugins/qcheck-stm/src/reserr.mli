@@ -20,7 +20,7 @@ type W.kind +=
   | Impossible_term_substitution of (string * [ `New | `Old ])
   | Ignored_modifies of string
   | Ensures_not_found_for_next_state of string
-  | Return_type_not_supported of string
+  | Type_not_supported of string
 
 type 'a reserr
 
@@ -38,4 +38,6 @@ val map : ('a -> 'b reserr) -> 'a list -> 'b list reserr
 val concat_map : ('a -> 'b list reserr) -> 'a list -> 'b list reserr
 val fmap : ('a -> 'b) -> 'a reserr -> 'b reserr
 val ( <$> ) : ('a -> 'b) -> 'a reserr -> 'b reserr
+val app : ('a -> 'b) reserr -> 'a reserr -> 'b reserr
+val ( <*> ) : ('a -> 'b) reserr -> 'a reserr -> 'b reserr
 val pp : 'a Fmt.t -> 'a reserr Fmt.t

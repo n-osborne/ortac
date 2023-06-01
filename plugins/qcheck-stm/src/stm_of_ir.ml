@@ -120,6 +120,104 @@ let mk_cmd_pattern value =
   let name = String.capitalize_ascii (str_of_ident value.id) |> lident in
   ppat_construct name args
 
+let munge_longident cap ty lid =
+  let open Reserr in
+  match lid.txt with
+  | Lident i | Ldot (Lident i, "t") | Ldot (Ldot (_, i), "t") | Ldot (_, i) ->
+      let f =
+        if cap then String.capitalize_ascii else String.uncapitalize_ascii
+      in
+      ok (f i)
+  | Lapply (_, _) ->
+      error
+        (Type_not_supported (Fmt.str "%a" Pprintast.core_type ty), ty.ptyp_loc)
+
+let pat_char = ppat_construct (lident "Char") None
+let exp_char = evar "char"
+
+let pat_of_core_type inst typ =
+  let rec aux ty =
+    let open Reserr in
+    match ty.ptyp_desc with
+    | Ptyp_var v -> (
+        match List.assoc_opt v inst with None -> ok pat_char | Some t -> aux t)
+    | Ptyp_constr (c, xs) ->
+        let constr_str = lident <$> munge_longident true ty c
+        and pat_arg =
+          match xs with
+          | [] -> ok None
+          | xs -> (fun xs -> Some (ppat_tuple xs)) <$> map aux xs
+        in
+        ppat_construct <$> constr_str <*> pat_arg
+    | _ ->
+        error
+          ( Type_not_supported (Fmt.str "%a" Pprintast.core_type typ),
+            typ.ptyp_loc )
+  in
+  aux typ
+
+let exp_of_core_type inst typ =
+  let rec aux ty =
+    let open Reserr in
+    match ty.ptyp_desc with
+    | Ptyp_var v -> (
+        match List.assoc_opt v inst with None -> ok exp_char | Some t -> aux t)
+    | Ptyp_constr (c, xs) -> (
+        let constr_str = evar <$> munge_longident false ty c in
+        match xs with
+        | [] -> constr_str
+        | xs ->
+            pexp_apply
+            <$> constr_str
+            <*> (List.map (fun e -> (Nolabel, e)) <$> map aux xs))
+    | _ ->
+        error
+          ( Type_not_supported (Fmt.str "%a" Pprintast.core_type typ),
+            typ.ptyp_loc )
+  in
+  aux typ
+
+let exp_of_ident id = pexp_ident (lident (str_of_ident id))
+
+let run_case config sut_name value =
+  let lhs = mk_cmd_pattern value in
+  let open Reserr in
+  let* rhs =
+    let res = lident "Res" in
+    let* ty_show = exp_of_core_type value.inst (Ir.get_return_type value) in
+    (* XXX TODO protect iff there are exceptional postconditions or checks *)
+    (* let call = function_call_exp (evar sut_name) value in *)
+    let call =
+      let efun = exp_of_ident value.id in
+      let mk_arg = Option.fold ~none:eunit ~some:exp_of_ident in
+      let rec aux ty args =
+        match (ty.ptyp_desc, args) with
+        | Ptyp_arrow (lb, l, r), xs when Cfg.is_sut config l ->
+            (lb, evar sut_name) :: aux r xs
+        | Ptyp_arrow (lb, _, r), x :: xs -> (lb, mk_arg x) :: aux r xs
+        | _, [] -> []
+        | _, _ ->
+            failwith
+              "shouldn't happen (list of arguments should be consistent with \
+               type)"
+      in
+      pexp_apply efun (aux value.ty value.args)
+    in
+    let args = Some (pexp_tuple [ ty_show; call ]) in
+    pexp_construct res args |> ok
+  in
+  case ~lhs ~guard:None ~rhs |> ok
+
+let run config ir =
+  let cmd_name = gen_symbol ~prefix:"cmd" () in
+  let sut_name = gen_symbol ~prefix:"sut" () in
+  let open Reserr in
+  let* cases = map (run_case config sut_name) ir.values in
+  let body = pexp_match (evar cmd_name) cases in
+  let pat = pvar "run" in
+  let expr = efun [ (Nolabel, pvar cmd_name); (Nolabel, pvar sut_name) ] body in
+  pstr_value Nonrecursive [ value_binding ~pat ~expr ] |> ok
+
 let next_state_case config state_ident value =
   let state_var = str_of_ident state_ident |> evar in
   let lhs = mk_cmd_pattern value in
@@ -182,37 +280,6 @@ let next_state config ir =
   in
   (idx, pstr_value Nonrecursive [ value_binding ~pat ~expr ]) |> ok
 
-let pat_char = ppat_construct (lident "Char") None
-
-let munge_longident ty lid =
-  let open Reserr in
-  match lid.txt with
-  | Lident i | Ldot (Lident i, "t") | Ldot (Ldot (_, i), "t") | Ldot (_, i) ->
-      ok (String.capitalize_ascii i)
-  | Lapply (_, _) ->
-      error
-        ( Return_type_not_supported (Fmt.str "%a" Pprintast.core_type ty),
-          ty.ptyp_loc )
-
-let mk_pat_ret_ty inst ret_ty =
-  let rec aux ty =
-    let open Reserr in
-    match ty.ptyp_desc with
-    | Ptyp_var v -> (
-        match List.assoc_opt v inst with None -> ok pat_char | Some t -> aux t)
-    | Ptyp_constr (c, xs) ->
-        let* constr_str = munge_longident ty c and* pat_xs = map aux xs in
-        let pat_arg =
-          match pat_xs with [] -> None | xs -> Some (ppat_tuple xs)
-        in
-        ppat_construct (lident constr_str) pat_arg |> ok
-    | _ ->
-        error
-          ( Return_type_not_supported (Fmt.str "%a" Pprintast.core_type ret_ty),
-            ret_ty.ptyp_loc )
-  in
-  aux ret_ty
-
 let may_raise_exception v =
   match (v.postcond.exceptional, v.postcond.checks) with
   | [], [] -> false
@@ -230,10 +297,10 @@ let postcond_case config idx state_ident new_state_ident value =
       | Ptyp_var _ | Ptyp_constr _ -> ok ret_ty
       | _ ->
           error
-            ( Return_type_not_supported (Fmt.str "%a" Pprintast.core_type ret_ty),
+            ( Type_not_supported (Fmt.str "%a" Pprintast.core_type ret_ty),
               ret_ty.ptyp_loc )
     in
-    let* pat_ty = mk_pat_ret_ty value.inst ret_ty in
+    let* pat_ty = pat_of_core_type value.inst ret_ty in
     let pat_ret =
       match value.ret with
       | None -> ppat_any
@@ -369,4 +436,5 @@ let stm config ir =
   let open Reserr in
   let* idx, next_state = next_state config ir in
   let* postcond = postcond config idx ir in
-  ok [ cmd; state; next_state; postcond ]
+  let* run = run config ir in
+  ok [ cmd; state; next_state; postcond; run ]
