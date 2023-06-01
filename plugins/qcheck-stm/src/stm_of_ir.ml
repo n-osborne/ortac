@@ -4,6 +4,8 @@ open Ppxlib
 open Ortac_core.Builder
 
 let ty_default = Ptyp_constr (noloc (Lident "char"), [])
+let pat_default = ppat_construct (lident "Char") None
+let exp_default = evar "char"
 
 let show_attribute : attribute =
   {
@@ -108,8 +110,8 @@ let str_of_ident = Fmt.str "%a" Gospel.Identifier.Ident.pp
 
 let mk_cmd_pattern value =
   let pat_args = function
-    | None -> punit
-    | Some x -> ppat_var (noloc (str_of_ident x))
+    | _, None -> punit
+    | _, Some x -> ppat_var (noloc (str_of_ident x))
   in
   let args =
     match value.args with
@@ -132,15 +134,14 @@ let munge_longident cap ty lid =
       error
         (Type_not_supported (Fmt.str "%a" Pprintast.core_type ty), ty.ptyp_loc)
 
-let pat_char = ppat_construct (lident "Char") None
-let exp_char = evar "char"
-
 let pat_of_core_type inst typ =
   let rec aux ty =
     let open Reserr in
     match ty.ptyp_desc with
     | Ptyp_var v -> (
-        match List.assoc_opt v inst with None -> ok pat_char | Some t -> aux t)
+        match List.assoc_opt v inst with
+        | None -> ok pat_default
+        | Some t -> aux t)
     | Ptyp_constr (c, xs) ->
         let constr_str = lident <$> munge_longident true ty c
         and pat_arg =
@@ -161,7 +162,9 @@ let exp_of_core_type inst typ =
     let open Reserr in
     match ty.ptyp_desc with
     | Ptyp_var v -> (
-        match List.assoc_opt v inst with None -> ok exp_char | Some t -> aux t)
+        match List.assoc_opt v inst with
+        | None -> ok exp_default
+        | Some t -> aux t)
     | Ptyp_constr (c, xs) -> (
         let constr_str = evar <$> munge_longident false ty c in
         match xs with
@@ -178,6 +181,53 @@ let exp_of_core_type inst typ =
   aux typ
 
 let exp_of_ident id = pexp_ident (lident (str_of_ident id))
+
+let arb_cmd_case value =
+  let open Reserr in
+  let epure = pexp_ident (lident "pure") in
+  let pure e = pexp_apply epure [ (Nolabel, e) ] in
+  let fun_cstr =
+    let args =
+      List.map
+        (function
+          | _, None -> (Nolabel, punit)
+          | _, Some id -> (Nolabel, ppat_var (noloc (str_of_ident id))))
+        value.args
+    in
+    let name = String.capitalize_ascii (str_of_ident value.id) |> lident in
+    let body =
+      pexp_construct name
+        (pexp_tuple_opt
+           (List.map
+              (function
+                | _, None -> eunit | _, Some id -> evar (str_of_ident id))
+              value.args))
+    in
+    efun args body |> pure
+  in
+  let* gen_args =
+    (* XXX TODO: use `requires` clauses to build smarter generators *)
+    map (fun (ty, _) -> exp_of_core_type value.inst ty) value.args
+  in
+  let app l r = pexp_apply (evar "( <*> )") [ (Nolabel, l); (Nolabel, r) ] in
+  List.fold_left app fun_cstr gen_args |> ok
+
+let arb_cmd ir =
+  let open Reserr in
+  let* cmds = elist <$> map arb_cmd_case ir.values in
+  let open Ppxlib in
+  let let_open str e =
+    pexp_open Ast_helper.(Opn.mk (Mod.ident (lident str |> noloc))) e
+  in
+  let oneof = let_open "Gen" cmds in
+  let body =
+    let_open "QCheck"
+      (pexp_apply (evar "make")
+         [ (Labelled "print", evar "show_cmd"); (Nolabel, oneof) ])
+  in
+  let pat = pvar "arb_cmd" in
+  let expr = efun [ (Nolabel, ppat_any (* for now we don't use it *)) ] body in
+  pstr_value Nonrecursive [ value_binding ~pat ~expr ] |> ok
 
 let run_case config sut_name value =
   let lhs = mk_cmd_pattern value in
@@ -201,7 +251,7 @@ let run_case config sut_name value =
               "shouldn't happen (list of arguments should be consistent with \
                type)"
       in
-      pexp_apply efun (aux value.ty value.args)
+      pexp_apply efun (aux value.ty (List.map snd value.args))
     in
     let args = Some (pexp_tuple [ ty_show; call ]) in
     pexp_construct res args |> ok
@@ -390,20 +440,13 @@ let postcond config idx ir =
   in
   pstr_value Nonrecursive [ value_binding ~pat ~expr ] |> ok
 
-let cmd_constructor config value =
-  let rec aux ty : Ppxlib.core_type list =
-    match ty.ptyp_desc with
-    | Ptyp_arrow (_, l, r) ->
-        if Cfg.is_sut config l then aux r
-        else
-          let x = subst_core_type value.inst l and xs = aux r in
-          x :: xs
-    | _ -> []
-  in
+let cmd_constructor value =
   let name =
     String.capitalize_ascii value.id.Gospel.Tast.Ident.id_str |> noloc
   in
-  let args = aux value.ty in
+  let args =
+    List.map (fun (ty, _) -> subst_core_type value.inst ty) value.args
+  in
   constructor_declaration ~name ~args:(Pcstr_tuple args) ~res:None
 
 let state_type ir =
@@ -422,8 +465,8 @@ let state_type ir =
   in
   pstr_type Nonrecursive [ td ]
 
-let cmd_type config ir =
-  let constructors = List.map (cmd_constructor config) ir.values in
+let cmd_type ir =
+  let constructors = List.map cmd_constructor ir.values in
   let td =
     type_declaration ~name:(noloc "cmd") ~params:[] ~cstrs:[]
       ~kind:(Ptype_variant constructors) ~private_:Public ~manifest:None
@@ -431,10 +474,11 @@ let cmd_type config ir =
   pstr_type Nonrecursive [ { td with ptype_attributes = [ show_attribute ] } ]
 
 let stm config ir =
-  let cmd = cmd_type config ir in
+  let cmd = cmd_type ir in
   let state = state_type ir in
   let open Reserr in
   let* idx, next_state = next_state config ir in
   let* postcond = postcond config idx ir in
   let* run = run config ir in
-  ok [ cmd; state; next_state; postcond; run ]
+  let* arb_cmd = arb_cmd ir in
+  ok [ cmd; state; arb_cmd; next_state; postcond; run ]
