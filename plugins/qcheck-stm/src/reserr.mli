@@ -38,6 +38,7 @@ val warns : W.t list -> unit reserr
 val warn : W.t -> unit reserr
 val ( let* ) : 'a reserr -> ('a -> 'b reserr) -> 'b reserr
 val ( >>= ) : 'a reserr -> ('a -> 'b reserr) -> 'b reserr
+val ( >=> ) : ('a -> 'b reserr) -> ('b -> 'c reserr) -> 'a -> 'c reserr
 val ( and* ) : 'a reserr -> 'b reserr -> ('a * 'b) reserr
 val promote : 'a reserr list -> 'a list reserr
 val of_option : default:W.t -> 'a option -> 'a reserr

@@ -356,10 +356,8 @@ let precond_case config state_ident value =
   let* rhs =
     list_and
     <$> map
-          (fun t ->
-            subst_term ~gos_t:value.sut_var ~old_t:None
-              ~new_t:(Some state_ident) t
-            >>= ocaml_of_term config)
+          (subst_term ~gos_t:value.sut_var ~old_t:None ~new_t:(Some state_ident)
+          >=> ocaml_of_term config)
           value.precond
   in
   ok (case ~lhs ~guard:None ~rhs)

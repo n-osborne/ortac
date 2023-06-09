@@ -60,6 +60,7 @@ let ( let* ) x f =
   | (Error _, _) as x -> x
 
 let ( >>= ) = ( let* )
+let ( >=> ) f g a = f a >>= g
 
 let ( and* ) (a, aw) (b, bw) =
   let r =
