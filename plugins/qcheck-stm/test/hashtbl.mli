@@ -1,10 +1,14 @@
 type (!'a, !'b) t
-(*@ mutable model contents : ('a * 'b) list *)
+(*@ mutable model contents : ('a * 'b) list
+    mutable model randomized : bool *)
 
 val create :
   ?random:(* thwart tools/sync_stdlib_docs *) bool -> int -> ('a, 'b) t
 (*@ h = create ?random size
-    ensures h.contents = [] *)
+    ensures h.contents = []
+    ensures h.randomized = match random with
+                            | None -> false
+                            | Some b -> b *)
 
 val clear : ('a, 'b) t -> unit
 (*@ clear h
@@ -39,7 +43,7 @@ val find_opt : ('a, 'b) t -> 'a -> 'b option
 
 val find_all : ('a, 'b) t -> 'a -> 'b list
 (*@ bs = find_all h a
-    ensures bs = List.of_seq (Sequence.filter_map (fun x -> if fst x = a then Some (snd x) else None) (List.to_seq h.contents)) *)
+    ensures bs = Sequence.filter_map (fun x -> if fst x = a then Some (snd x) else None)  h.contents *)
 
 val mem : ('a, 'b) t -> 'a -> bool
 (*@ b = mem h a
@@ -56,10 +60,27 @@ val remove : ('a, 'b) t -> 'a -> unit
     ensures h.contents = remove_first a (old h.contents) *)
 
 val replace : ('a, 'b) t -> 'a -> 'b -> unit
+(*@ replace h a b
+    modifies h
+    ensures h.contents = (a, b) :: remove_first a (old h.contents) *)
+
 val iter : ('a -> 'b -> unit) -> ('a, 'b) t -> unit
+
 val filter_map_inplace : ('a -> 'b -> 'b option) -> ('a, 'b) t -> unit
+(*@ filter_map_inplace f h
+    modifies h
+    ensures h.contents = Sequence.filter_map
+                            (fun x -> match f (fst x) (snd x) with
+                                       | None -> None
+                                       | Some b' -> Some (fst x, b'))
+                            (old h.contents) *)
+
 val fold : ('a -> 'b -> 'c -> 'c) -> ('a, 'b) t -> 'c -> 'c
+
 val length : ('a, 'b) t -> int
+(*@ i = length h
+    ensures i = List.length h.contents *)
+
 val randomize : unit -> unit
 val is_randomized : unit -> bool
 
