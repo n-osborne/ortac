@@ -4,79 +4,79 @@ Warning: `copy' returns a sut.
 File "hashtbl.mli", line 63, characters 0-51:
 Warning: The function `iter' is not specified.
 
-File "hashtbl.mli", line 74, characters 0-59:
+File "hashtbl.mli", line 73, characters 0-59:
 Warning: The function `fold' is not specified.
 
-File "hashtbl.mli", line 80, characters 16-28:
+File "hashtbl.mli", line 78, characters 16-28:
 Warning: `randomize' have no sut argument.
 
-File "hashtbl.mli", line 80, characters 0-28:
+File "hashtbl.mli", line 78, characters 0-28:
 Warning: The function `randomize' is not specified.
 
-File "hashtbl.mli", line 81, characters 20-32:
+File "hashtbl.mli", line 79, characters 20-32:
 Warning: `is_randomized' have no sut argument.
 
-File "hashtbl.mli", line 81, characters 0-32:
+File "hashtbl.mli", line 79, characters 0-32:
 Warning: The function `is_randomized' is not specified.
 
-File "hashtbl.mli", line 84, characters 68-78:
+File "hashtbl.mli", line 82, characters 68-78:
 Warning: `rebuild' returns a sut.
 
-File "hashtbl.mli", line 83, characters 0-92:
+File "hashtbl.mli", line 81, characters 0-92:
 Warning: The function `rebuild' is not specified.
 
-File "hashtbl.mli", line 98, characters 0-36:
+File "hashtbl.mli", line 96, characters 0-36:
 Warning: The function `stats' is not specified.
 
-File "hashtbl.mli", line 99, characters 0-42:
+File "hashtbl.mli", line 97, characters 0-42:
 Warning: The function `to_seq' is not specified.
 
-File "hashtbl.mli", line 100, characters 18-27:
+File "hashtbl.mli", line 98, characters 18-27:
 Warning: Type of system under test in `to_seq_keys' is incompatible with command line argument.
 
-File "hashtbl.mli", line 100, characters 0-39:
+File "hashtbl.mli", line 98, characters 0-39:
 Warning: The function `to_seq_keys' is not specified.
 
-File "hashtbl.mli", line 101, characters 20-29:
+File "hashtbl.mli", line 99, characters 20-29:
 Warning: Type of system under test in `to_seq_values' is incompatible with command line argument.
 
-File "hashtbl.mli", line 101, characters 0-41:
+File "hashtbl.mli", line 99, characters 0-41:
 Warning: The function `to_seq_values' is not specified.
 
-File "hashtbl.mli", line 102, characters 0-51:
+File "hashtbl.mli", line 100, characters 0-51:
 Warning: The function `add_seq' is not specified.
 
-File "hashtbl.mli", line 103, characters 0-55:
+File "hashtbl.mli", line 101, characters 0-55:
 Warning: The function `replace_seq' is not specified.
 
-File "hashtbl.mli", line 104, characters 32-42:
+File "hashtbl.mli", line 102, characters 32-42:
 Warning: `of_seq' returns a sut.
 
-File "hashtbl.mli", line 104, characters 0-42:
+File "hashtbl.mli", line 102, characters 0-42:
 Warning: The function `of_seq' is not specified.
 
-File "hashtbl.mli", line 105, characters 11-20:
+File "hashtbl.mli", line 103, characters 11-20:
 Warning: `hash' have no sut argument.
 
-File "hashtbl.mli", line 105, characters 0-20:
+File "hashtbl.mli", line 103, characters 0-20:
 Warning: The function `hash' is not specified.
 
-File "hashtbl.mli", line 106, characters 18-34:
+File "hashtbl.mli", line 104, characters 18-34:
 Warning: `seeded_hash' have no sut argument.
 
-File "hashtbl.mli", line 106, characters 0-34:
+File "hashtbl.mli", line 104, characters 0-34:
 Warning: The function `seeded_hash' is not specified.
 
-File "hashtbl.mli", line 107, characters 17-40:
+File "hashtbl.mli", line 105, characters 17-40:
 Warning: `hash_param' have no sut argument.
 
-File "hashtbl.mli", line 107, characters 0-40:
+File "hashtbl.mli", line 105, characters 0-40:
 Warning: The function `hash_param' is not specified.
 
-File "hashtbl.mli", line 108, characters 24-54:
+File "hashtbl.mli", line 106, characters 24-54:
 Warning: `seeded_hash_param' have no sut argument.
 
-File "hashtbl.mli", line 108, characters 0-54:
+File "hashtbl.mli", line 106, characters 0-54:
 Warning: The function `seeded_hash_param' is not specified.
 
 File "hashtbl.mli", line 2, characters 18-26:
@@ -109,9 +109,9 @@ Warning: unsupported function application `remove_first`. The clause has not bee
 File "hashtbl.mli", line 61, characters 35-47:
 Warning: unsupported function application `remove_first`. The clause has not been translated
 
-File "hashtbl.mli", line 68, characters 12-22:
+File "hashtbl.mli", line 67, characters 12-22:
 Warning: unsupported function application `to_seq`. The clause has not been translated
 
-File "hashtbl.mli", line 65, characters 26-47:
+File "hashtbl.mli", line 64, characters 26-47:
 Warning: Type not supported `'a -> 'b -> 'b option'.
 

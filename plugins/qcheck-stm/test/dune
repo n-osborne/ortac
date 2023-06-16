@@ -58,7 +58,7 @@
   qcheck-stm.stm
   qcheck-stm.sequential
   ortac-runtime)
- (flags :standard -w -26-27-32-33)
+ (flags :standard -w -23-26-27-32-33 -w -37)
  (preprocess
   (pps ppx_deriving.show))
  (action
@@ -75,7 +75,12 @@
    hashtbl_errors
    (with-stdout-to
     %{target}
-    (run ortac qcheck-stm %{dep:hashtbl.mli} "create ~random:false 16" "(char, int) t")))))
+    (run
+     ortac
+     qcheck-stm
+     %{dep:hashtbl.mli}
+     "create ~random:false 16"
+     "(char, int) t")))))
 
 (rule
  (alias runtest)

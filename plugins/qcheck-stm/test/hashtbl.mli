@@ -61,7 +61,6 @@ val replace : ('a, 'b) t -> 'a -> 'b -> unit
     ensures h.contents = (a, b) :: remove_first a (old h.contents) *)
 
 val iter : ('a -> 'b -> unit) -> ('a, 'b) t -> unit
-
 val filter_map_inplace : ('a -> 'b -> 'b option) -> ('a, 'b) t -> unit
 (*@ filter_map_inplace f h
     modifies h
@@ -72,7 +71,6 @@ val filter_map_inplace : ('a -> 'b -> 'b option) -> ('a, 'b) t -> unit
                             (old h.contents) *)
 
 val fold : ('a -> 'b -> 'c -> 'c) -> ('a, 'b) t -> 'c -> 'c
-
 val length : ('a, 'b) t -> int
 (*@ i = length h
     ensures i = List.length h.contents *)
