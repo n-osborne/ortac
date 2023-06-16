@@ -1,14 +1,10 @@
 type (!'a, !'b) t
-(*@ mutable model contents : ('a * 'b) list
-    mutable model randomized : bool *)
+(*@ mutable model contents : ('a * 'b) list *)
 
 val create :
   ?random:(* thwart tools/sync_stdlib_docs *) bool -> int -> ('a, 'b) t
 (*@ h = create ?random size
-    ensures h.contents = []
-    ensures h.randomized = match random with
-                            | None -> false
-                            | Some b -> b *)
+    ensures h.contents = [] *)
 
 val clear : ('a, 'b) t -> unit
 (*@ clear h
