@@ -52,6 +52,9 @@
             | .... -> ... let open UnderTest in call
 
     ```
+- [ ] let the user give `init_state` in a module passed as argument in the cli.
+  We may have to be careful about checking that the expression given for
+  `init_sut` is of type `sut`, or we let the compiler warn the user afterward.
 
 # Ideas for use-cases
 
