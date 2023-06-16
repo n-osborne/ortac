@@ -5,7 +5,7 @@
  - [ ] report errors and warnings to user [ocaml-gospel#93](https://github.com/ocaml-gospel93)
  - [ ] when checking for values returning sut type check that this is not the
    function called by the user for `init_sut` and don't print / store a warning
-   for this one
+   for this one [ocaml-gospel/ortac#94](https://github.com/ocaml-gospel/ortac/pull/94)
  - [ ] write more tests (negative ones that raises some warnings)
  - [ ] use preconditions and checks clauses to specialize QCheck generators.
     One first step could be to focus on ints (index out of bound being the main example).
