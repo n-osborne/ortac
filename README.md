@@ -3,6 +3,9 @@
  - [x] Licence (commit 1c2108)
  - [ ] handle xposts [ocaml-gospel/ortac#90](https://github.com/ocaml-gospel/ortac/pull/90)
  - [ ] report errors and warnings to user [ocaml-gospel#93](https://github.com/ocaml-gospel93)
+ - [ ] when checking for values returning sut type check that this is not the
+   function called by the user for `init_sut` and don't print / store a warning
+   for this one
  - [ ] write more tests (negative ones that raises some warnings)
  - [ ] use preconditions and checks clauses to specialize QCheck generators.
     One first step could be to focus on ints (index out of bound being the main example).
@@ -54,4 +57,9 @@
 
 - [ ] vocal library (see how the `qcheck-stm` mode handle these specifications)
 - [ ] [art-w](https://github.com/art-w/mcavl) This project already uses `qcheck-lin`
-- [ ] [mirage/optint](https://github.com/mirage/optint) This is a good use case for gospel in itself as it decares a common module signature in an `.ml` file. The two difficulties are to make gospel look at signatures in implementation files and to specify an interface with multiple implementation
+- [ ] [mirage/optint](https://github.com/mirage/optint) This is a good use case
+  for gospel in itself as it decares a common module signature in an `.ml`
+  file. The two difficulties are to make gospel look at signatures in
+  implementation files and to specify an interface with multiple implementation
+- [ ] `Out_channel` from Stdlib. This will need a gospel ghost type so we'll
+  need to figure out how to handle them.
