@@ -1,8 +1,8 @@
  # TODO for `qcheck-stm` mode
 
  - [x] Licence (commit 1c2108)
- - [ ] handle xposts #90
- - [ ] report errors and warnings to user #93
+ - [ ] handle xposts [ocaml-gospel/ortac#90](https://github.com/ocaml-gospel/ortac/pull/90)
+ - [ ] report errors and warnings to user [ocaml-gospel#93](https://github.com/ocaml-gospel93)
  - [ ] write more tests (negative ones that raises some warnings)
  - [ ] use preconditions and checks clauses to specialize QCheck generators.
     One first step could be to focus on ints (index out of bound being the main example).
