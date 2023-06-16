@@ -2,8 +2,8 @@
 
  - [x] Licence (commit 1c2108)
  - [ ] handle xposts [ocaml-gospel/ortac#90](https://github.com/ocaml-gospel/ortac/pull/90)
- - [ ] report errors and warnings to user [ocaml-gospel#93](https://github.com/ocaml-gospel93)
- - [ ] when checking for values returning sut type check that this is not the
+ - [x] report errors and warnings to user [ocaml-gospel#93](https://github.com/ocaml-gospel93)
+ - [x] when checking for values returning sut type check that this is not the
    function called by the user for `init_sut` and don't print / store a warning
    for this one [ocaml-gospel/ortac#94](https://github.com/ocaml-gospel/ortac/pull/94)
  - [ ] write more tests (negative ones that raises some warnings)
