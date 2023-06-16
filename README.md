@@ -49,3 +49,9 @@
             | .... -> ... let open UnderTest in call
 
     ```
+
+# Ideas for use-cases
+
+- [ ] vocal library (see how the `qcheck-stm` mode handle these specifications)
+- [ ] [art-w](https://github.com/art-w/mcavl) This project already uses `qcheck-lin`
+- [ ] [mirage/optint](https://github.com/mirage/optint) This is a good use case for gospel in itself as it decares a common module signature in an `.ml` file. The two difficulties are to make gospel look at signatures in implementation files and to specify an interface with multiple implementation
