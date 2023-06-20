@@ -235,10 +235,10 @@ let arb_cmd_case value =
   in
   let gen_args =
     (* XXX TODO: use `requires` clauses to build smarter generators *)
-    (List.map (fun (ty, _) -> exp_of_core_type value.inst ty) value.args)
+    List.map (fun (ty, _) -> exp_of_core_type value.inst ty) value.args
   in
   let app l r = pexp_apply (evar "( <*> )") [ (Nolabel, l); (Nolabel, r) ] in
-  List.fold_left app fun_cstr <$> (sequence gen_args)
+  List.fold_left app fun_cstr <$> sequence gen_args
 
 let arb_cmd ir =
   let open Reserr in
@@ -636,6 +636,47 @@ let init_state config ir =
   let expr = pexp_record fields None |> bindings in
   let pat = pvar "init_state" in
   pstr_value Nonrecursive [ value_binding ~pat ~expr ] |> ok
+
+let ghost_function config fct : (Cfg.t * Ppxlib.structure_item) Reserr.reserr =
+  let open Gospel in
+  let open Tast in
+  let open Reserr in
+  match fct.fun_def with
+  | None -> failwith "todo"
+  | Some t ->
+      let* body = ocaml_of_term config t in
+      let body =
+        efun
+          (List.map
+             (fun vs -> (Nolabel, pvar (str_of_ident vs.Symbols.vs_name)))
+             fct.fun_params)
+          body
+      in
+      let bindings =
+        [
+          value_binding ~pat:(pvar (str_of_ident fct.fun_ls.ls_name)) ~expr:body;
+        ]
+      in
+      ( config,
+        pstr_value (if fct.fun_rec then Recursive else Nonrecursive) bindings )
+      |> ok
+
+let ghost_functions config =
+  let open Gospel.Tast in
+  let open Reserr in
+  let rec aux config (acc : structure) = function
+    | [] -> ok (config, List.rev acc)
+    | x :: xs -> (
+        match x.sig_desc with
+        | Sig_function fct -> (
+            let* f = promote [ ghost_function config fct ] in
+            match f with
+            | [] -> aux config acc xs
+            | [ (config, f) ] -> aux config (f :: acc) xs
+            | _ -> failwith "impossible")
+        | _ -> aux config acc xs)
+  in
+  aux config []
 
 let stm config ir =
   let sut = sut_type config in
