@@ -669,11 +669,10 @@ let ghost_functions config =
     | x :: xs -> (
         match x.sig_desc with
         | Sig_function fct -> (
-            let* f = promote [ ghost_function config fct ] in
+            let* f = promote_opt (ghost_function config fct) in
             match f with
-            | [] -> aux config acc xs
-            | [ (config, f) ] -> aux config (f :: acc) xs
-            | _ -> failwith "impossible")
+            | None -> aux config acc xs
+            | Some (config, f) -> aux config (f :: acc) xs)
         | _ -> aux config acc xs)
   in
   aux config []
