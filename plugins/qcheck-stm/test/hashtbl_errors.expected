@@ -82,12 +82,6 @@ Warning: The function `seeded_hash_param' is not specified.
 File "hashtbl.mli", line 2, characters 18-26:
 Warning: No translatable `ensures` clause found to generate `next_state` for model `contents'.
 
-File "hashtbl.mli", line 2, characters 18-26:
-Warning: No translatable `ensures` clause found to generate `next_state` for model `contents'.
-
-File "hashtbl.mli", line 2, characters 18-26:
-Warning: No translatable `ensures` clause found to generate `next_state` for model `contents'.
-
 File "hashtbl.mli", line 30, characters 24-66:
 Warning: unsupported quantification. The clause has not been translated
 
@@ -102,12 +96,6 @@ Warning: unsupported function application `to_seq`. The clause has not been tran
 
 File "hashtbl.mli", line 46, characters 47-50:
 Warning: unsupported function application `fst`. The clause has not been translated
-
-File "hashtbl.mli", line 56, characters 25-37:
-Warning: unsupported function application `remove_first`. The clause has not been translated
-
-File "hashtbl.mli", line 61, characters 35-47:
-Warning: unsupported function application `remove_first`. The clause has not been translated
 
 File "hashtbl.mli", line 67, characters 12-22:
 Warning: unsupported function application `to_seq`. The clause has not been translated
