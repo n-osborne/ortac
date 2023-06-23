@@ -29,6 +29,7 @@ type W.kind +=
   | Ensures_not_found_for_next_state of string
   | Type_not_supported of string
   | Impossible_init_state_generation of init_state_error
+  | Gospel_warning of Gospel.Warnings.error
 
 let level kind =
   match kind with
@@ -41,7 +42,7 @@ let level kind =
   | Sut_type_not_supported _ | Type_not_supported_for_sut_parameter _
   | Init_sut_not_supported _ | Syntax_error_in_init_sut _
   | Type_parameter_not_instantiated _ | Sut_type_not_specified _ | No_models _
-  | Impossible_init_state_generation _ ->
+  | Impossible_init_state_generation _ | Gospel_warning _ ->
       W.Error
   | _ -> W.level kind
 
@@ -153,6 +154,7 @@ let pp_kind ppf kind =
         "Mismatch number of arguments between %a and the function \
          specification."
         W.quoted fct
+  | Gospel_warning e -> Gospel.Warnings.pp ppf e
   | _ -> W.pp_kind ppf kind
 
 let pp_errors = W.pp_param pp_kind level |> Fmt.list

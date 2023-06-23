@@ -29,6 +29,7 @@ type W.kind +=
   | Ensures_not_found_for_next_state of string
   | Type_not_supported of string
   | Impossible_init_state_generation of init_state_error
+  | Gospel_warning of Gospel.Warnings.error
 
 type 'a reserr
 

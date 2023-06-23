@@ -85,8 +85,12 @@ let init_sut_from_string str =
 
 let init path init_sut sut_str =
   let module_name = Utils.module_name_of_path path in
-  Parser_frontend.parse_ocaml_gospel path |> Utils.type_check [] path
-  |> fun (env, sigs) ->
+  let open Reserr in
+  let* env, sigs =
+    try
+      Parser_frontend.parse_ocaml_gospel path |> Utils.type_check [] path |> ok
+    with Gospel.Warnings.Error e -> error (Gospel_warning e, Location.none)
+  in
   assert (List.length env = 1);
   let namespace = List.hd env in
   let context = Context.init module_name namespace in
