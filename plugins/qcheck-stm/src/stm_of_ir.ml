@@ -729,15 +729,16 @@ let stm config ir =
               (pmod_ident (Ldot (Lident "STM_sequential", "Make") |> noloc))
               (pmod_ident (lident "Spec"))))
   in
+  let module_name = Ortac_core.Context.module_name config.context in
   let call_tests =
     let loc = Location.none in
     [%stri
       let _ =
         QCheck_base_runner.run_tests_main
           (let count = 1000 in
-           [ STMTests.agree_test ~count ~name:"STM Lib test sequential" ])]
+           [ STMTests.agree_test ~count ~name:("STM " ^ [%e estring module_name] ^ " sequential test") ])]
   in
   ok
-    ([ open_mod (Ortac_core.Context.module_name config.context) ]
+    ([ open_mod module_name ]
     @ ghost_functions
     @ [ stm_spec; tests; call_tests ])
