@@ -53,8 +53,10 @@ let get_return_type value =
 let value id ty inst sut_var args ret next_state precond postcond =
   { id; ty; inst; sut_var; args; ret; next_state; precond; postcond }
 
+type mutability = Mutable | Immutable
+
 type t = {
-  state : (Ident.t * Ppxlib.core_type) list;
+  state : (mutability * Ident.t * Ppxlib.core_type) list;
   init_state : init_state;
   ghost_functions : Tast.function_ list;
   values : value list;
@@ -62,8 +64,10 @@ type t = {
 
 let pp_state ppf state =
   let open Fmt in
-  let pp_model ppf (id, ty) =
-    pf ppf "@[%a: %a@]" Ident.pp id Ppxlib_ast.Pprintast.core_type ty
+  let pp_mut ppf = function Mutable -> pf ppf "mutable " | _ -> () in
+  let pp_model ppf (mut, id, ty) =
+    pf ppf "@[%a%a: %a@]" pp_mut mut Ident.pp id Ppxlib_ast.Pprintast.core_type
+      ty
   in
   pf ppf "@[%a@]@." (list ~sep:(any "; ") pp_model) state
 
