@@ -1,0 +1,10 @@
+(mdx
+ (deps
+  (package ortac-core))
+ (libraries ortac_core))
+
+(documentation
+  (package ortac-core)
+  (mld_files index))
+
+

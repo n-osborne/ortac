@@ -1,0 +1,19 @@
+
+{@ocaml[
+# open Ortac_core;;
+# print_int 42;;
+42
+- : unit = ()
+# Warnings.Unsupported "bob";;
+- : Warnings.kind = Ortac_core.Warnings.Unsupported "bob"
+]}
+
+{@ocaml file=example.mli,part=f[
+val f : int -> int
+(*@ y = f x *)
+]}
+
+{@ocaml file=example.mli,part=g[
+val g : int -> bool
+(*@ b = f x *)
+]}
