@@ -5,7 +5,34 @@ let register cmd = Queue.add cmd plugins
 let fold = Queue.fold
 let get_channel = function None -> stdout | Some path -> open_out path
 
+module W = Ortac_core.Warnings.Name
+module S = Set.Make (W)
+
+let w = ref S.empty
+let add x = w := S.add x !w
+let remove x = w := S.remove x !w
+let mem x = S.mem x !w
+
 open Cmdliner
+
+let warnings of_string =
+  let parse s =
+    let f, a =
+      if String.starts_with ~prefix:"no-" s then
+        let s = String.sub s 3 (String.length s - 3) in
+        (remove, of_string s)
+      else (add, of_string s)
+    in
+    match a with
+    | [] -> Error (`Msg (Fmt.str "Error: `%s' is not a valid warning flag" s))
+    | ws ->
+        List.iter f ws;
+        Ok (Some s)
+  in
+  Arg.(
+    value
+    & opt (conv ~docv:"WARNINGS" (parse, Fmt.(option string))) None
+    & info [ "w" ] ~absent:"warning" ~docv:"WARNINGS" ~doc:"")
 
 let setup_log =
   let init style_renderer = Fmt_tty.setup_std_outputs ?style_renderer () in

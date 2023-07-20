@@ -1,14 +1,37 @@
 open Ppxlib
 
+module Name = struct
+  type t = ..
+  type t += Quantification | Old
+
+  let compare = compare
+  let quantification = "quantification"
+  let old = "old"
+
+  exception Unknown_warning
+
+  let of_string = function
+    | "quantification" -> [ Quantification ]
+    | "old" -> [ Old ]
+    | _ -> []
+end
+
 type level = Warning | Error
 type kind = ..
-type kind += Unsupported of string
+type kind += Unsupported of string | Quantification of string | Old of string
 
-exception Unkown_kind
+exception Unknown_kind
+
+let to_string = function
+  | Quantification _ -> Name.quantification
+  | Old _ -> Name.old
+  | _ -> raise Unknown_kind
 
 type t = kind * Location.t
 
-let level = function Unsupported _ -> Warning | _ -> raise Unkown_kind
+let level = function
+  | Unsupported _ | Quantification _ | Old _ -> Warning
+  | _ -> raise Unknown_kind
 
 exception Error of t
 
@@ -25,7 +48,10 @@ let quoted ppf = pf ppf "`%s'"
 let pp_kind ppf = function
   | Unsupported msg ->
       pf ppf "unsupported %s. The clause has not been translated" msg
-  | _ -> raise Unkown_kind
+  | Quantification msg ->
+      pf ppf "unsupported %s. The clause has not been translated" msg
+  | Old msg -> pf ppf "unsupported %s. The clause has not been translated" msg
+  | _ -> raise Unknown_kind
 
 let is_fake_loc loc = loc.loc_start.pos_fname = "_none_"
 

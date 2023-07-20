@@ -33,7 +33,7 @@ type bound = Inf of expression | Sup of expression
 let rec bounds ~context ~loc (var : Symbols.vsymbol) (t1 : Tterm.term)
     (t2 : Tterm.term) =
   let unsupported () =
-    raise W.(Error (Unsupported "ill formed quantification", loc))
+    raise W.(Error (Quantification "ill formed quantification", loc))
   in
   (* [comb] extracts a bound from an the operator [f] and expression [e].
      [right] indicates if [e] is on the right side of the operator. *)
@@ -125,7 +125,7 @@ and term ~context (t : Tterm.term) : expression =
           } ) ->
       (match (quant, op) with
       | Tforall, Timplies | Texists, (Tand | Tand_asym) -> ()
-      | _, _ -> unsupported "ill formed quantification");
+      | _, _ -> raise (W.Error (W.Quantification "quantification", loc)));
       let start, stop = bounds ~context ~loc var t1 t2 in
       let p = term p in
       let quant =
@@ -136,7 +136,7 @@ and term ~context (t : Tterm.term) : expression =
       let x = str "%a" Ident.pp var.vs_name in
       let func = pexp_fun Nolabel None (pvar x) p in
       eapply quant [ start; stop; func ]
-  | Tquant (_, _, _) -> unsupported "quantification"
+  | Tquant (_, _, _) -> raise (W.Error (W.Quantification "quantification", loc))
   | Tbinop (op, t1, t2) -> (
       match op with
       | Tterm.Tand ->
@@ -158,7 +158,7 @@ and term ~context (t : Tterm.term) : expression =
       | Tterm.Timplies -> [%expr (not [%e term t1]) || [%e term t2]]
       | Tterm.Tiff -> [%expr [%e term t1] = [%e term t2]])
   | Tnot t -> [%expr not [%e term t]]
-  | Told _ -> unsupported "old operator"
+  | Told _ -> raise (W.Error (W.Old "old operator", loc))
   | Ttrue -> [%expr true]
   | Tfalse -> [%expr false]
 

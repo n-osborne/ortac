@@ -16,7 +16,7 @@
  (public_name ortac-core.register)
  (name registration)
  (modules registration)
- (libraries cmdliner fmt.tty fmt.cli))
+ (libraries ortac_core cmdliner fmt.tty fmt.cli))
 
 (generate_sites_module
  (module sites)
