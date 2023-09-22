@@ -92,7 +92,8 @@ let ocaml_of_term cfg t =
 let subst_term state ~gos_t ?(old_lz = false) ~old_t ?(new_lz = false) ~new_t
     term =
   let exception
-    ImpossibleSubst of (Gospel.Tterm.term * [ `New | `Old | `NotModel ])
+    ImpossibleSubst of
+      (Gospel.Tterm.term * [ `Never | `New | `Old | `NotModel ])
   in
   let rec aux cur_lz cur_t term =
     let open Gospel.Tterm in
@@ -109,7 +110,12 @@ let subst_term state ~gos_t ?(old_lz = false) ~old_t ?(new_lz = false) ~new_t
               { term with t_node = Tfield (t, ls) }
           | None ->
               raise
-                (ImpossibleSubst (subt, if cur_t = new_t then `New else `Old))
+                (ImpossibleSubst
+                   ( subt,
+                     match (new_t, old_t) with
+                     | None, None -> `Never
+                     | None, _ -> `New
+                     | _, _ -> `Old ))
         else
           (* case x.f where f is _not_ a model field *)
           raise (ImpossibleSubst (term, `NotModel))
