@@ -1,11 +1,13 @@
 open Gospel.Tmodule
 module L = Map.Make (Gospel.Symbols.LS)
+module T = Map.Make (Gospel.Ttypes.Ts)
 
 type t = {
   module_name : string;
   stdlib : string L.t;
   env : namespace;
   functions : string L.t;
+  types : string T.t;
 }
 
 let get_env get ns path =
@@ -93,9 +95,16 @@ let fold_namespace f path ns v =
   in
   aux path ns v
 
+let fold_type_namespace f path ns v =
+  let rec aux path ns v =
+    let v = Gospel.Tmodule.Mstr.fold (f path) ns.ns_ts v in
+    Gospel.Tmodule.Mstr.fold (fun s -> aux (path @ [ s ])) ns.ns_ns v
+  in
+  aux path ns v
+
 let init module_name env =
   let gostd = Gospel.Tmodule.Mstr.find "Gospelstdlib" env.ns_ns in
-  let process_gostd_entry path name ls lib =
+  let process_gostd_entry add path name ls lib =
     match process_name name with
     | None -> lib
     | Some name ->
@@ -103,7 +112,7 @@ let init module_name env =
         if Hashtbl.mem unsupported_stdlib fullpath then lib
         else
           let fullpath = "Ortac_runtime" :: fullpath in
-          L.add ls (String.concat "." fullpath) lib
+          add ls (String.concat "." fullpath) lib
   in
   let stdlib =
     List.fold_left
@@ -113,8 +122,16 @@ let init module_name env =
       L.empty builtins
   in
   let stdlib =
-    fold_namespace process_gostd_entry [ "Gospelstdlib" ] gostd stdlib
+    fold_namespace (process_gostd_entry L.add) [ "Gospelstdlib" ] gostd stdlib
   in
-  { module_name; stdlib; env; functions = L.empty }
+  (* let types = *)
+  (*   List.fold_left *)
+  (*   (fun acc (path, ocaml) -> *)
+  (*     let ts = get_ts_env env path in *)
+  (*     T.add ts ocaml acc) *)
+  (*   T.empty *)
+  (* in *)
+  let types = fold_type_namespace (process_gostd_entry T.add) [ "Gospelstdlib" ] gostd stdlib in
+  { module_name; stdlib; env; functions = L.empty; types }
 
 let module_name t = t.module_name
