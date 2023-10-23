@@ -102,19 +102,15 @@ let process_name name =
     Some ("__mix_" ^ String.map convert_mix_symbol (drop p_mix))
   else Some name
 
-let fold_value_namespace f path ns v =
+let fold_namespace proj f path ns v =
   let rec aux path ns v =
-    let v = Gospel.Tmodule.Mstr.fold (f path) ns.ns_ls v in
+    let v = Gospel.Tmodule.Mstr.fold (f path) (proj ns) v in
     Gospel.Tmodule.Mstr.fold (fun s -> aux (path @ [ s ])) ns.ns_ns v
   in
   aux path ns v
 
-let fold_type_namespace f path ns v =
-  let rec aux path ns v =
-    let v = Gospel.Tmodule.Mstr.fold (f path) ns.ns_ts v in
-    Gospel.Tmodule.Mstr.fold (fun s -> aux (path @ [ s ])) ns.ns_ns v
-  in
-  aux path ns v
+let fold_value_namespace = fold_namespace (fun ns -> ns.ns_ls)
+let fold_type_namespace = fold_namespace (fun ns -> ns.ns_ts)
 
 let init module_name env =
   let gostd = Gospel.Tmodule.Mstr.find "Gospelstdlib" env.ns_ns in
