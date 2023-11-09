@@ -1,0 +1,24 @@
+(library
+ (name lwt_dllist_spec)
+ (modules lwt_dllist_spec)
+ (flags
+  (:standard -w -69))
+ (package ortac-examples)
+ (libraries lwt-dllist))
+
+(test
+ (name lwt_dllist_tests)
+ (modules lwt_dllist_tests)
+ (libraries
+  lwt_dllist_spec
+  qcheck-stm.stm
+  qcheck-stm.sequential
+  ortac-runtime)
+ (package ortac-examples))
+
+(rule
+ (alias runtest)
+ (package ortac-examples)
+ (deps lwt_dllist_tests.exe)
+ (action
+  (run ./%{deps} --verbose)))

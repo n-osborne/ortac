@@ -176,5 +176,6 @@
   ortac-core
   ortac-qcheck-stm
   ortac-runtime
-  qcheck-stm))
+  qcheck-stm
+  lwt-dllist))
 
