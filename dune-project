@@ -164,3 +164,17 @@
   (ortac-runtime :with-test))
  (conflicts
   (result (< 1.5))))
+
+(package
+ (name ortac-examples)
+ (synopsis
+  "Ortac examples on different libraries")
+ (maintainers "Nicolas Osborne <nicolas.osborne@tarides.com>")
+ (authors "Nicolas Osborne <nicolas.osborne@tarides.com>")
+ (depends
+  (ocaml (>= 4.11.0))
+  ortac-core
+  ortac-qcheck-stm
+  ortac-runtime
+  qcheck-stm))
+
