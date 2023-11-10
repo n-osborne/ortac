@@ -16,11 +16,6 @@
   qcheck-stm.stm
   qcheck-stm.sequential
   ortac-runtime)
- (package ortac-examples))
-
-(rule
- (alias runtest)
  (package ortac-examples)
- (deps lwt_dllist_tests.exe)
  (action
-  (run ./%{deps} --verbose)))
+  (run %{test} --verbose)))
