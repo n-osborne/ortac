@@ -3,8 +3,7 @@
  (modules lwt_dllist_spec)
  (flags
   (:standard -w -69))
- (package ortac-examples)
- (libraries lwt-dllist))
+ (package ortac-examples))
 
 (test
  (name lwt_dllist_tests)
