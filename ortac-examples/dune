@@ -1,3 +1,6 @@
+(rule
+ (copy %{lib:lwt-dllist:lwt_dllist.ml} lwt_dllist_spec.ml))
+
 (library
  (name lwt_dllist_spec)
  (modules lwt_dllist_spec)
