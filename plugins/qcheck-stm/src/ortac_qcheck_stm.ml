@@ -42,8 +42,8 @@ end = struct
     Arg.(
       value
       & opt (some string) None
-      & info [ "i"; "include" ] ~docv:"INCLUDE"
-          ~doc:"Include the INCLUDE module in the generated code.")
+      & info [ "i"; "include" ] ~docv:"MODULE"
+          ~doc:"Include MODULE in the generated code.")
 
   let term =
     let open Registration in
