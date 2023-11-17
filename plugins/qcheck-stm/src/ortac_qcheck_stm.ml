@@ -39,10 +39,9 @@ end = struct
           ~docv:"INIT")
 
   let include_ =
-    let parse s = Ok (Some s) in
     Arg.(
       value
-      & opt (conv ~docv:"INCLUDE" (parse, Fmt.(option string))) None
+      & opt (some string) None
       & info [ "i"; "include" ] ~docv:"INCLUDE"
           ~doc:"Include the INCLUDE module in the generated code.")
 
