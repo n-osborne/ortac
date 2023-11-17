@@ -44,7 +44,7 @@ end = struct
       value
       & opt (conv ~docv:"INCLUDE" (parse, Fmt.(option string))) None
       & info [ "i"; "include" ] ~docv:"INCLUDE"
-          ~doc:"Include the INCLUDE module in the generate code.")
+          ~doc:"Include the INCLUDE module in the generated code.")
 
   let term =
     let open Registration in
