@@ -103,6 +103,20 @@
  (action
   (run %{test} --verbose)))
 
+(test
+ (name varray_tests2)
+ (modules varray_tests2)
+ (libraries
+  varray_incl
+  varray_spec
+  qcheck-stm.stm
+  qcheck-stm.sequential
+  qcheck-multicoretests-util
+  ortac-runtime)
+ (package ortac-examples)
+ (action
+  (run %{test} --verbose)))
+
 (rule
  (mode promote)
  (enabled_if %{bin-available:awk})
@@ -157,3 +171,8 @@
  (package ortac-examples)
  (action
   (run %{test} --verbose)))
+
+(executable
+ (name reproduce)
+ (modules reproduce)
+ (libraries varray))
