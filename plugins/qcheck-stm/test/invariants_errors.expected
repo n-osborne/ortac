@@ -1,0 +1,4 @@
+File "invariants.mli", line 4, characters 4-14:
+4 |     invariants List.length x.contents > 0 *)
+        ^^^^^^^^^^
+Error: Gospel error: Syntax error.

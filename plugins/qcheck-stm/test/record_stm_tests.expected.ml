@@ -157,7 +157,15 @@ module Spec =
       match cmd__010_ with | Get -> Res (int, (get sut__011_))
   end
 module STMTests = (STM_sequential.Make)(Spec)
+let wrapped_init_state () =
+  let __state__012_ = Spec.init_state in
+  if true
+  then __state__012_
+  else QCheck.Test.fail_report "INIT_SUT violates type invariants for SUT"
+let agree_prop cs = let _ = wrapped_init_state () in STMTests.agree_prop cs
 let _ =
-  QCheck_base_runner.run_tests_main
-    (let count = 1000 in
-     [STMTests.agree_test ~count ~name:"Record STM tests"])
+  let open QCheck in
+    QCheck_base_runner.run_tests_main
+      (let count = 1000 in
+       [Test.make ~count ~name:"Record STM tests"
+          (STMTests.arb_cmds Spec.init_state) agree_prop])

@@ -736,8 +736,42 @@ let init_state config ir =
                      Ppxlib.Location.none )))
       ir.state
   in
-  let expr = pexp_record fields None |> bindings in
-  let pat = pvar "init_state" in
+  let expr = pexp_record fields None |> bindings and pat = pvar "init_state" in
+  pstr_value Nonrecursive [ value_binding ~pat ~expr ] |> ok
+
+let wrapped_init_state config ir =
+  let init_state = [%expr Spec.init_state] in
+  let open Reserr in
+  (* Now we include a check that the new expression describing the inital state
+     respects the type invariants for sut *)
+  let* expr =
+    if Option.is_some ir.invariants then
+      let state_name = gen_symbol ~prefix:"__state" () in
+      let state_var = evar state_name
+      and state_pat = pvar state_name
+      and state_id = Ident.create ~loc:Location.none state_name in
+      let translate_invariants id t =
+        subst_term ir.state ~gos_t:id ~old_t:None ~new_t:(Some state_id) t
+        >>= ocaml_of_term config
+      in
+      let* invariants =
+        list_and
+        <$> Option.fold ~none:(ok [])
+              ~some:(fun (id, xs) -> map (translate_invariants id) xs)
+              ir.invariants
+      in
+      let msg =
+        [%expr
+          QCheck.Test.fail_report "INIT_SUT violates type invariants for SUT"]
+      in
+      pexp_let Nonrecursive
+        [ value_binding ~pat:state_pat ~expr:init_state ]
+        (pexp_ifthenelse invariants state_var (Some msg))
+      |> ok
+    else init_state |> ok
+  in
+  let expr = efun [ (Nolabel, punit) ] expr
+  and pat = pvar "wrapped_init_state" in
   pstr_value Nonrecursive [ value_binding ~pat ~expr ] |> ok
 
 let ghost_function config fct =
@@ -781,6 +815,12 @@ let ghost_functions config =
   in
   aux config []
 
+let agree_prop =
+  [%stri
+    let agree_prop cs =
+      let _ = wrapped_init_state () in
+      STMTests.agree_prop cs]
+
 let stm include_ config ir =
   let open Reserr in
   let* config, ghost_functions = ghost_functions config ir.ghost_functions in
@@ -807,6 +847,7 @@ let stm include_ config ir =
   let* run = run config ir in
   let* arb_cmd = arb_cmd ir in
   let* init_state = init_state config ir in
+  let* wrapped_init_state = wrapped_init_state config ir in
   let cleanup =
     let pat = pvar "cleanup" in
     let expr = efun [ (Nolabel, ppat_any) ] eunit in
@@ -854,11 +895,16 @@ let stm include_ config ir =
     let descr = estring (module_name ^ " STM tests") in
     [%stri
       let _ =
+        let open QCheck in
         QCheck_base_runner.run_tests_main
           (let count = 1000 in
-           [ STMTests.agree_test ~count ~name:[%e descr] ])]
+           [
+             Test.make ~count ~name:[%e descr]
+               (STMTests.arb_cmds Spec.init_state)
+               agree_prop;
+           ])]
   in
   ok
     ([ open_mod module_name ]
     @ ghost_functions
-    @ [ stm_spec; tests; call_tests ])
+    @ [ stm_spec; tests; wrapped_init_state; agree_prop; call_tests ])
