@@ -1,5 +1,7 @@
 # Unreleased
 
+- Add support for type invariants
+  [\#197](https://github.com/ocaml-gospel/ortac/pull/197)
 - Add an include option to qcheck-stm cli
   [\#181](https://github.com/ocaml-gospel/ortac/pull/181)
 - Add a quiet flag
