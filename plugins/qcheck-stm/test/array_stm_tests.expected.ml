@@ -1,5 +1,6 @@
 [@@@ocaml.warning "-26-27"]
 open Array
+module Ortac_runtime = Ortac_runtime_qcheck_stm
 module Spec =
   struct
     open STM
@@ -326,7 +327,7 @@ module Spec =
       | To_list -> Res ((list char), (to_list sut__019_))
       | Mem a_3 -> Res (bool, (mem a_3 sut__019_))
   end
-module STMTests = (STM_sequential.Make)(Spec)
+module STMTests = (Ortac_runtime.Make)(Spec)
 let wrapped_init_state () = Spec.init_state
 let ortac_postcond cmd__008_ state__009_ res__010_ =
   let (++) = Ortac_runtime.(++) in
@@ -1056,10 +1057,8 @@ let ortac_postcond cmd__008_ state__009_ res__010_ =
                        }
                    })])
       | _ -> None
-let agree_prop cs = let _ = wrapped_init_state () in STMTests.agree_prop cs
 let _ =
-  let open QCheck in
-    QCheck_base_runner.run_tests_main
-      (let count = 1000 in
-       [Test.make ~count ~name:"Array STM tests"
-          (STMTests.arb_cmds Spec.init_state) agree_prop])
+  QCheck_base_runner.run_tests_main
+    (let count = 1000 in
+     [STMTests.agree_test ~count ~name:"Array STM tests" wrapped_init_state
+        ortac_postcond])

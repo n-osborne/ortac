@@ -1,5 +1,6 @@
 [@@@ocaml.warning "-26-27"]
 open Invariants
+module Ortac_runtime = Ortac_runtime_qcheck_stm
 module Spec =
   struct
     open STM
@@ -78,7 +79,7 @@ module Spec =
     let run cmd__010_ sut__011_ =
       match cmd__010_ with | Push a_1 -> Res (unit, (push a_1 sut__011_))
   end
-module STMTests = (STM_sequential.Make)(Spec)
+module STMTests = (Ortac_runtime.Make)(Spec)
 let wrapped_init_state () =
   let __state__012_ = Spec.init_state in
   if
@@ -165,10 +166,8 @@ let ortac_postcond cmd__004_ state__005_ res__006_ =
                        }
                    })])
       | _ -> None
-let agree_prop cs = let _ = wrapped_init_state () in STMTests.agree_prop cs
 let _ =
-  let open QCheck in
-    QCheck_base_runner.run_tests_main
-      (let count = 1000 in
-       [Test.make ~count ~name:"Invariants STM tests"
-          (STMTests.arb_cmds Spec.init_state) agree_prop])
+  QCheck_base_runner.run_tests_main
+    (let count = 1000 in
+     [STMTests.agree_test ~count ~name:"Invariants STM tests"
+        wrapped_init_state ortac_postcond])

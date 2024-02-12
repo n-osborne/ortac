@@ -1,5 +1,6 @@
 [@@@ocaml.warning "-26-27"]
 open Conjunctive_clauses
+module Ortac_runtime = Ortac_runtime_qcheck_stm
 let set_contents c i a_1 =
   try
     Ortac_runtime.Gospelstdlib.List.mapi
@@ -152,7 +153,7 @@ module Spec =
             ((result unit exn),
               (protect (fun () -> set sut__015_ i_1 a_2) ()))
   end
-module STMTests = (STM_sequential.Make)(Spec)
+module STMTests = (Ortac_runtime.Make)(Spec)
 let wrapped_init_state () = Spec.init_state
 let ortac_postcond cmd__006_ state__007_ res__008_ =
   let (++) = Ortac_runtime.(++) in
@@ -276,10 +277,8 @@ let ortac_postcond cmd__006_ state__007_ res__008_ =
                                  }
                              })])))
       | _ -> None
-let agree_prop cs = let _ = wrapped_init_state () in STMTests.agree_prop cs
 let _ =
-  let open QCheck in
-    QCheck_base_runner.run_tests_main
-      (let count = 1000 in
-       [Test.make ~count ~name:"Conjunctive_clauses STM tests"
-          (STMTests.arb_cmds Spec.init_state) agree_prop])
+  QCheck_base_runner.run_tests_main
+    (let count = 1000 in
+     [STMTests.agree_test ~count ~name:"Conjunctive_clauses STM tests"
+        wrapped_init_state ortac_postcond])

@@ -1,5 +1,6 @@
 [@@@ocaml.warning "-26-27"]
 open Hashtbl
+module Ortac_runtime = Ortac_runtime_qcheck_stm
 let rec remove_first x xs_1 =
   try
     match xs_1 with
@@ -274,7 +275,7 @@ module Spec =
       | Replace (a_8, b_3) -> Res (unit, (replace sut__011_ a_8 b_3))
       | Length -> Res (int, (length sut__011_))
   end
-module STMTests = (STM_sequential.Make)(Spec)
+module STMTests = (Ortac_runtime.Make)(Spec)
 let wrapped_init_state () = Spec.init_state
 let ortac_postcond cmd__004_ state__005_ res__006_ =
   let (++) = Ortac_runtime.(++) in
@@ -598,10 +599,8 @@ let ortac_postcond cmd__004_ state__005_ res__006_ =
                        }
                    })])
       | _ -> None
-let agree_prop cs = let _ = wrapped_init_state () in STMTests.agree_prop cs
 let _ =
-  let open QCheck in
-    QCheck_base_runner.run_tests_main
-      (let count = 1000 in
-       [Test.make ~count ~name:"Hashtbl STM tests"
-          (STMTests.arb_cmds Spec.init_state) agree_prop])
+  QCheck_base_runner.run_tests_main
+    (let count = 1000 in
+     [STMTests.agree_test ~count ~name:"Hashtbl STM tests" wrapped_init_state
+        ortac_postcond])

@@ -1,5 +1,6 @@
 [@@@ocaml.warning "-26-27"]
 open Lwt_dllist_spec
+module Ortac_runtime = Ortac_runtime_qcheck_stm
 module Spec =
   struct
     open STM
@@ -296,7 +297,7 @@ module Spec =
       | Take_opt_l -> Res ((option int), (take_opt_l sut__016_))
       | Take_opt_r -> Res ((option int), (take_opt_r sut__016_))
   end
-module STMTests = (STM_sequential.Make)(Spec)
+module STMTests = (Ortac_runtime.Make)(Spec)
 let wrapped_init_state () = Spec.init_state
 let ortac_postcond cmd__005_ state__006_ res__007_ =
   let (++) = Ortac_runtime.(++) in
@@ -725,10 +726,8 @@ let ortac_postcond cmd__005_ state__006_ res__007_ =
                        }
                    })])
       | _ -> None
-let agree_prop cs = let _ = wrapped_init_state () in STMTests.agree_prop cs
 let _ =
-  let open QCheck in
-    QCheck_base_runner.run_tests_main
-      (let count = 1000 in
-       [Test.make ~count ~name:"Lwt_dllist_spec STM tests"
-          (STMTests.arb_cmds Spec.init_state) agree_prop])
+  QCheck_base_runner.run_tests_main
+    (let count = 1000 in
+     [STMTests.agree_test ~count ~name:"Lwt_dllist_spec STM tests"
+        wrapped_init_state ortac_postcond])

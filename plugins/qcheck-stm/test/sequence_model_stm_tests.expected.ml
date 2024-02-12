@@ -1,5 +1,6 @@
 [@@@ocaml.warning "-26-27"]
 open Sequence_model
+module Ortac_runtime = Ortac_runtime_qcheck_stm
 let length_opt s =
   try Some (Ortac_runtime.Gospelstdlib.Sequence.length s)
   with
@@ -182,7 +183,7 @@ module Spec =
       | Remove -> Res ((option char), (remove sut__013_))
       | Remove_ -> Res ((option char), (remove_ sut__013_))
   end
-module STMTests = (STM_sequential.Make)(Spec)
+module STMTests = (Ortac_runtime.Make)(Spec)
 let wrapped_init_state () = Spec.init_state
 let ortac_postcond cmd__006_ state__007_ res__008_ =
   let (++) = Ortac_runtime.(++) in
@@ -194,10 +195,8 @@ let ortac_postcond cmd__006_ state__007_ res__008_ =
       | (Remove, Res ((Option (Char), _), o)) -> None
       | (Remove_, Res ((Option (Char), _), o_1)) -> None
       | _ -> None
-let agree_prop cs = let _ = wrapped_init_state () in STMTests.agree_prop cs
 let _ =
-  let open QCheck in
-    QCheck_base_runner.run_tests_main
-      (let count = 1000 in
-       [Test.make ~count ~name:"Sequence_model STM tests"
-          (STMTests.arb_cmds Spec.init_state) agree_prop])
+  QCheck_base_runner.run_tests_main
+    (let count = 1000 in
+     [STMTests.agree_test ~count ~name:"Sequence_model STM tests"
+        wrapped_init_state ortac_postcond])

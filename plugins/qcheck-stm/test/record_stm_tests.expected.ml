@@ -1,5 +1,6 @@
 [@@@ocaml.warning "-26-27"]
 open Record
+module Ortac_runtime = Ortac_runtime_qcheck_stm
 let plus1_1 i =
   try
     Ortac_runtime.Gospelstdlib.(+) i
@@ -74,7 +75,7 @@ module Spec =
     let run cmd__010_ sut__011_ =
       match cmd__010_ with | Get -> Res (int, (get sut__011_))
   end
-module STMTests = (STM_sequential.Make)(Spec)
+module STMTests = (Ortac_runtime.Make)(Spec)
 let wrapped_init_state () =
   let __state__012_ = Spec.init_state in
   if true
@@ -233,10 +234,8 @@ let ortac_postcond cmd__004_ state__005_ res__006_ =
                              }
                          })])))
       | _ -> None
-let agree_prop cs = let _ = wrapped_init_state () in STMTests.agree_prop cs
 let _ =
-  let open QCheck in
-    QCheck_base_runner.run_tests_main
-      (let count = 1000 in
-       [Test.make ~count ~name:"Record STM tests"
-          (STMTests.arb_cmds Spec.init_state) agree_prop])
+  QCheck_base_runner.run_tests_main
+    (let count = 1000 in
+     [STMTests.agree_test ~count ~name:"Record STM tests" wrapped_init_state
+        ortac_postcond])
