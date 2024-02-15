@@ -1,5 +1,7 @@
 # Unreleased
 
+- Improve test-failure message
+  [\#202](https://github.com/ocaml-gospel/ortac/pull/202)
 - Add support for type invariants
   [\#197](https://github.com/ocaml-gospel/ortac/pull/197)
 - Add an include option to qcheck-stm cli
