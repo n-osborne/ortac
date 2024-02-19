@@ -4,7 +4,8 @@ type 'a t
 
 val length : 'a t -> int
 (*@ i = length t
-    ensures i = t.size *)
+    ensures i = 42
+    ensures i = t.size + 1 *)
 
 val get : 'a t -> int -> 'a
 (*@ a = get t i
