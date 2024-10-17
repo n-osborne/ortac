@@ -1542,7 +1542,7 @@ let sut_stm_ty_defs config ir =
       let sut = (SUT, fun _ -> "<sut>")]
   else []
 
-let stm config ir =
+let stm module_prefix config ir =
   let open Reserr in
   let* ghost_types = ghost_types config ir.ghost_types in
   let* config, ghost_functions = ghost_functions config ir.ghost_functions in
@@ -1564,12 +1564,14 @@ let stm config ir =
     in
     Option.value config.cleanup ~default
   in
-  let open_mod m = pstr_open Ast_helper.(Opn.mk (Mod.ident (lident m))) in
+  let open_mod i =
+    pstr_open (open_infos ~expr:(pmod_ident i) ~override:Fresh)
+  in
   let sut_defs = sut_defs ir in
   let state_defs = state_defs ir in
   let spec_expr =
     pmod_structure
-      ((open_mod "STM" :: qcheck config)
+      ((open_mod (lident "STM") :: qcheck config)
       @ util config
       @ Option.value config.ty_mod ~default:[]
       @ integer_ty_ext
@@ -1615,9 +1617,21 @@ let stm config ir =
   in
   let sut_mod = sut_module config in
   let* model_mod = model_module config ir in
+  let opened_mod =
+    match module_prefix with
+    | None -> Lident module_name
+    | Some s -> (
+        match String.split_on_char '.' s with
+        | m :: ms ->
+            let pref =
+              List.fold_left (fun acc x -> Ldot (acc, x)) (Lident m) ms
+            in
+            Ldot (pref, module_name)
+        | _ -> assert false)
+  in
   ok
     (warn
-     :: open_mod module_name
+     :: open_mod (noloc opened_mod)
      :: [%stri module Ortac_runtime = Ortac_runtime_qcheck_stm]
      :: ghost_types
     @ ghost_functions
