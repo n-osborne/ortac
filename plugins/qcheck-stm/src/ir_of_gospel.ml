@@ -5,10 +5,8 @@ module Ident = Identifier.Ident
 
 let constant_test vd =
   let open Reserr in
-  match vd.vd_args with
-  | [] ->
-      (Constant_value (Fmt.str "%a" Ident.pp vd.vd_name), vd.vd_loc) |> error
-  | _ -> ok ()
+  let err = (Constant_value (Fmt.str "%a" Ident.pp vd.vd_name), vd.vd_loc) in
+  when_ (List.is_empty vd.vd_args) (error err)
 
 let no_functional_arg_or_big_tuple vd =
   let open Reserr in

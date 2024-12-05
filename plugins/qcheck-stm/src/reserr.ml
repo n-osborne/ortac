@@ -350,3 +350,4 @@ let rec fold_left f acc = function
 
 let of_option ~default = Option.fold ~none:(error default) ~some:ok
 let to_option = function Ok x, _ -> Some x | _ -> None
+let when_ b r = if b then r else ok ()
