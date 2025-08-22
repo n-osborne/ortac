@@ -32,7 +32,9 @@ let rec pop_as : type a r. a t -> Backoff.t -> (a, r) poly2 -> r =
   match Atomic.get t with
   | [] -> ( match poly with Option -> None | Value | Unit -> raise Empty)
   | hd :: tail as before ->
-      if Atomic.compare_and_set t before tail then
+      let x = Atomic.get t in
+      if x == before then
+        let () = Atomic.set t tail in
         match poly with Option -> Some hd | Value -> hd | Unit -> ()
       else pop_as t (Backoff.once backoff) poly
 
