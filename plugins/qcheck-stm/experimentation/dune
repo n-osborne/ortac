@@ -7,3 +7,15 @@
  (name stm_treiber_stack)
  (modules stm_treiber_stack)
  (libraries treiber_stack qcheck-stm.domain))
+
+(test
+ (name ortac_treiber_stack)
+ (modules ortac_treiber_stack)
+ (libraries
+  treiber_stack
+  qcheck-core
+  qcheck-core.runner
+  qcheck-stm.stm
+  qcheck-stm.domain
+  qcheck-multicoretests-util
+  ortac-runtime-qcheck-stm.domain))
