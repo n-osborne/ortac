@@ -1,0 +1,9 @@
+(library
+ (name treiber_stack)
+ (modules treiber_stack)
+ (libraries backoff))
+
+(test
+ (name stm_treiber_stack)
+ (modules stm_treiber_stack)
+ (libraries treiber_stack qcheck-stm.domain))
