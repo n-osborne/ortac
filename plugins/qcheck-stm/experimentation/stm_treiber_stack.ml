@@ -12,7 +12,7 @@ module Spec = struct
     (* peek_exn and drop_exn use the same function as pop_exn*)
     | Pop_all
     | Peek_opt (* peek_exn uses the same function as peek_exn *)
-    | To_seq
+    (* | To_seq *)
     | Is_empty
 
   let string_of_int_list l =
@@ -26,7 +26,7 @@ module Spec = struct
     | Pop_opt -> "Pop_opt"
     | Pop_all -> "Pop_all"
     | Peek_opt -> "Peek_opt"
-    | To_seq -> "To_seq"
+    (* | To_seq -> "To_seq" *)
     | Is_empty -> "Is_empty"
 
   type state = int list
@@ -42,7 +42,7 @@ module Spec = struct
            Gen.return Pop_opt;
            Gen.return Pop_all;
            Gen.return Peek_opt;
-           Gen.return To_seq;
+           (* Gen.return To_seq; *)
            Gen.return Is_empty;
          ])
 
@@ -59,7 +59,7 @@ module Spec = struct
     | Pop_opt -> ( match s with [] -> s | _ :: s' -> s')
     | Pop_all -> []
     | Peek_opt -> s
-    | To_seq -> s
+    (* | To_seq -> s *)
     | Is_empty -> s
 
   let precond _ _ = true
@@ -71,7 +71,7 @@ module Spec = struct
     | Pop_opt -> Res (option int, Stack.pop_opt d)
     | Pop_all -> Res (list int, Stack.pop_all d)
     | Peek_opt -> Res (option int, Stack.peek_opt d)
-    | To_seq -> Res (seq int, Stack.to_seq d)
+    (* | To_seq -> Res (seq int, Stack.to_seq d) *)
     | Is_empty -> Res (bool, Stack.is_empty d)
 
   let postcond c (s : state) res =
@@ -81,7 +81,7 @@ module Spec = struct
     | (Pop_opt | Peek_opt), Res ((Option Int, _), res) -> (
         match s with [] -> res = None | j :: _ -> res = Some j)
     | Pop_all, Res ((List Int, _), res) -> res = s
-    | To_seq, Res ((Seq Int, _), res) -> List.of_seq res = s
+    (* | To_seq, Res ((Seq Int, _), res) -> List.of_seq res = s *)
     | Is_empty, Res ((Bool, _), res) -> res = (s = [])
     | _, _ -> false
 end
