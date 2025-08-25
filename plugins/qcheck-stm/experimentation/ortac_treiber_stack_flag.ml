@@ -82,7 +82,7 @@ module Spec =
     let init_sut = SUT.create 1
     type state = Model.t
     let init_state = Model.create 1 ()
-    type cmd =
+    type cmd_ =
       | Create of unit 
       | Is_empty 
       | Peek_opt 
@@ -90,7 +90,8 @@ module Spec =
       | Pop_all 
       | Push of int 
       | Push_all of int list 
-    let show_cmd cmd__001_ =
+    type cmd = (bool * cmd_)
+    let show_cmd (_, cmd__001_) =
       match cmd__001_ with
       | Create () ->
           Format.asprintf "%s %a" "create" (Util.Pp.pp_unit true) ()
@@ -108,6 +109,7 @@ module Spec =
       let open QCheck in
         make ~print:show_cmd
           (let open Gen in
+          pair (return false) @@
              oneof
                [(pure (fun () -> Create ())) <*> unit;
                pure Is_empty;
@@ -116,7 +118,7 @@ module Spec =
                pure Pop_all;
                (pure (fun x -> Push x)) <*> int;
                (pure (fun xs -> Push_all xs)) <*> (list int)])
-    let next_state cmd__002_ state__003_ =
+    let next_state (_, cmd__002_) state__003_ =
       match cmd__002_ with
       | Create () ->
           let a_1__005_ =
@@ -286,7 +288,7 @@ module Spec =
                               })))
               } in
           Model.push (Model.drop_n state__003_ 1) a_7__017_
-    let precond cmd__044_ state__045_ =
+    let precond (_, cmd__044_) state__045_ =
       match cmd__044_ with
       | Create () -> true
       | Is_empty -> true
@@ -296,7 +298,7 @@ module Spec =
       | Push x -> true
       | Push_all xs -> true
     let postcond _ _ _ = true
-    let run cmd__046_ sut__047_ =
+    let run (_, cmd__046_) sut__047_ =
       match cmd__046_ with
       | Create () -> Res (sut, (let res__048_ = create () in res__048_))
       | Is_empty ->
@@ -332,7 +334,7 @@ module Spec =
   end
 module STMTests = (Ortac_runtime.Make)(Spec)
 let check_init_state () = ()
-let ortac_show_cmd cmd__062_ state__063_ last__065_ res__064_ =
+let ortac_show_cmd (_, cmd__062_) state__063_ last__065_ res__064_ =
   let open Spec in
     let open STM in
       match (cmd__062_, res__064_) with
@@ -373,10 +375,10 @@ let ortac_show_cmd cmd__062_ state__063_ last__065_ res__064_ =
             (SUT.get_name state__063_ (0 + shift))
             (Util.Pp.pp_list Util.Pp.pp_int true) xs
       | _ -> assert false
-let ortac_postcond cmd__018_ state__019_ res__020_ =
+let ortac_postcond (flag, cmd__018_) state__019_ res__020_ =
   let open Spec in
     let open STM in
-      let new_state__021_ = lazy (next_state cmd__018_ state__019_) in
+      let new_state__021_ = lazy (next_state (flag, cmd__018_) state__019_) in
       match (cmd__018_, res__020_) with
       | (Create (), Res ((SUT, _), a_1)) -> None
       | (Is_empty, Res ((Bool, _), b)) ->
