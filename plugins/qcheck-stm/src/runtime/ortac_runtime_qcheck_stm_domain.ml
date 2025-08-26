@@ -218,6 +218,21 @@ module MakeExt (Spec : SpecExt) = struct
         assume (all_interleavings_ok triple);
         repeat rep_count test_prop triple)
   (* 25 times each, then 25 * 10 times when shrinking *)
+
+  let agree_test_plus ~count ~name max_suts wrapped_init_state arb_cmd_flag
+      ortac_show_cmd postcond =
+    let max_gen = 3 * count in
+    (* precond filtering may require extra generation: max. 3*count though *)
+    let test_prop =
+      agree_prop max_suts wrapped_init_state ortac_show_cmd postcond
+    in
+    Test.make ~retries ~max_gen ~count ~name
+      (arb_triple seq_len par_len (arb_cmd_flag true) (arb_cmd_flag false)
+         (arb_cmd_flag false))
+      (fun triple ->
+        assume (all_interleavings_ok triple);
+        repeat rep_count test_prop triple)
+  (* 25 times each, then 25 * 10 times when shrinking *)
 end
 
 module Make (Spec : Spec) = MakeExt (struct
