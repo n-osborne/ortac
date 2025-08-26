@@ -119,7 +119,8 @@ module Spec =
                (pure (fun x -> Push x)) <*> int;
                (pure (fun xs -> Push_all xs)) <*> (list int)])
     let arb_cmd = arb_cmd_flag false
-    let next_state (_, cmd__002_) state__003_ =
+    let arb_cmd = arb_cmd_flag true
+    let next_state (flag, cmd__002_) state__003_ =
       match cmd__002_ with
       | Create () ->
           let a_1__005_ =
@@ -149,7 +150,9 @@ module Spec =
                                   }
                               })))
               } in
-          Model.drop_n state__003_ 0
+          if flag
+          then Model.push (Model.drop_n state__003_ 0) a_1__005_
+          else Model.drop_n state__003_ 0
       | Is_empty ->
           let a_2__006_ = Model.get state__003_ 0 in
           let a_2__007_ = a_2__006_ in
@@ -299,9 +302,15 @@ module Spec =
       | Push x -> true
       | Push_all xs -> true
     let postcond _ _ _ = true
-    let run (_, cmd__046_) sut__047_ =
+    let run (flag, cmd__046_) sut__047_ =
       match cmd__046_ with
-      | Create () -> Res (sut, (let res__048_ = create () in res__048_))
+      | Create () ->
+          Res
+            (sut,
+              (let res__048_ = create () in
+              (if flag
+               then (SUT.push sut__047_ res__048_; res__048_ )
+               else res__048_)))
       | Is_empty ->
           Res
             (bool,
