@@ -569,5 +569,5 @@ let ortac_postcond (flag, cmd__018_) state__019_ res__020_ =
 let _ =
   QCheck_base_runner.run_tests_main
     (let count = 1000 in
-     [STMTests.agree_test ~count ~name:"Treiber_stack STM tests" 1
-        check_init_state ortac_show_cmd ortac_postcond])
+     [STMTests.agree_test_plus ~count ~name:"Treiber_stack STM tests" 1
+        check_init_state Spec.arb_cmd_flag ortac_show_cmd ortac_postcond])
