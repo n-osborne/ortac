@@ -105,11 +105,11 @@ module Spec =
           Format.asprintf "%s <sut> %a" "push_all"
             (Util.Pp.pp_list Util.Pp.pp_int true) xs
     let cleanup _ = ()
-    let arb_cmd _ =
+    let arb_cmd_flag flag _ =
       let open QCheck in
         make ~print:show_cmd
           (let open Gen in
-          pair (return false) @@
+          pair (return flag) @@
              oneof
                [(pure (fun () -> Create ())) <*> unit;
                pure Is_empty;
@@ -118,6 +118,7 @@ module Spec =
                pure Pop_all;
                (pure (fun x -> Push x)) <*> int;
                (pure (fun xs -> Push_all xs)) <*> (list int)])
+    let arb_cmd = arb_cmd_flag false
     let next_state (_, cmd__002_) state__003_ =
       match cmd__002_ with
       | Create () ->

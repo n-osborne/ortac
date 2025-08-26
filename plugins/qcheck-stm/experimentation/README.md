@@ -7,7 +7,7 @@ sequential prefix or one of the two spawned domain.
 TODO:
 
 - [X] change the type cmd definition to contain a flag
-- [ ] provide `arb_cmd_flag`, a parameterized `arb_cmd`
+- [X] provide `arb_cmd_flag`, a parameterized `arb_cmd`
 - [ ] make run and next_state adapt their behaviour to the flag inside the cmd
 - [ ] provide a `agree_test_flag` that takes `arb_cmd_flag` as argument
 - [ ] make generated code uses `agree_test_flag`
