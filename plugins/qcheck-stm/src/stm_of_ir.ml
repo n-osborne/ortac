@@ -3,6 +3,7 @@ open Ir
 open Ppxlib
 open Ortac_core.Builder
 module Ident = Gospel.Identifier.Ident
+module Symbols = Gospel.Symbols
 
 let is_a_function ty =
   let open Ppxlib in
@@ -84,10 +85,14 @@ let lazy_force =
   let open Tterm_helper in
   let vs_name = Ident.create ~loc:Location.none "Lazy.force"
   and vs_ty = Ttypes.fresh_ty_var "a" in
-  let lazy_force = mk_term (Tvar { vs_name; vs_ty }) None Location.none in
+  let lazy_force =
+    mk_term (Tvar { vs_name; vs_ty }) Ttypes.ty_unit Location.none
+  in
   fun t ->
     Tterm_helper.(
-      mk_term (Tapp (Symbols.fs_apply, [ lazy_force; t ])) None Location.none)
+      mk_term
+        (Tapp (Symbols.fs_apply, [ lazy_force; t ]))
+        Ttypes.ty_unit Location.none)
 
 let ocaml_of_term cfg t =
   let open Ortac_core.Ocaml_of_gospel in
@@ -127,7 +132,8 @@ let subst_term state ?(out_of_scope = []) ~gos_t ?(old_lz = false) ~fun_vars
     (* First: the only case where substitution happens, ie x.model *)
     | Tfield (({ t_node = Tvar { vs_name; vs_ty }; _ } as subt), ls)
       when List.mem vs_name gos_t ->
-        if List.exists (fun (m, _) -> Ident.equal m ls.ls_name) state then
+        if List.exists (fun (m, _) -> Ident.equal m (Symbols.get_name ls)) state
+        then
           match List.assoc_opt vs_name cur_t with
           | Some cur_t ->
               let t = { subt with t_node = Tvar { vs_name = cur_t; vs_ty } } in
@@ -146,15 +152,16 @@ let subst_term state ?(out_of_scope = []) ~gos_t ?(old_lz = false) ~fun_vars
           raise (ImpossibleSubst (term, `NotModel))
     | Tvar { vs_name; _ } when List.mem vs_name fun_vars ->
         let open Gospel in
+        let open Ttypes in
         let fn_apply_ty = Ttypes.fresh_ty_var "a" in
         let fn_apply_term =
           Tterm_helper.mk_term
             (Tvar { vs_name = fn_apply_name; vs_ty = fn_apply_ty })
-            None Location.none
+            ty_unit Location.none
         in
         Tterm_helper.mk_term
           (Tapp (Symbols.fs_apply, [ fn_apply_term; term ]))
-          None Location.none
+          ty_unit Location.none
     (* If the first case didn't match, it must be because [gos_t] is not used to
        access one of its model fields, so we error out *)
     | Tvar { vs_name; _ } when List.mem vs_name gos_t ->
@@ -745,7 +752,7 @@ let expected_returned_value translate_postcond value =
   match (ty_ret.ptyp_desc, value.ret_values) with
   | Ptyp_constr ({ txt = Lident "unit"; _ }, _), _ -> ret_res ty_show eunit
   | Ptyp_constr ({ txt = Lident "int"; _ }, _), [ (t :: _ as xs) ]
-    when t.term.t_ty = Some Gospel.Ttypes.ty_integer ->
+    when t.term.t_ty = Gospel.Ttypes.ty_integer ->
       promote_map translate_postcond xs
       |> to_option
       >>= Fun.flip List.nth_opt 0
@@ -1323,7 +1330,7 @@ let ghost_function config fct =
   match fct.fun_def with
   | None -> failwith "impossible"
   | Some t ->
-      let name = str_of_ident fct.fun_ls.ls_name in
+      let name = str_of_ident (Symbols.get_name fct.fun_ls) in
       let config' =
         Cfg.
           {
