@@ -369,12 +369,20 @@ let exp_of_core_type ?(use_small = false) inst typ =
 
 let exp_of_ident id = pexp_ident (lident (str_of_ident id))
 
+type which = Gen | Seq | Dom0 | Dom1
+
 (* Output a generator for one particular cmd wrapped in a [flagged_cmd] record
    by
    - a capitalized function constructor, e.g., [show] to
      [fun x y z -> Show (x,y,z)]
    - a list of generated arguments, strung together with [<*>], aka Gen.app *)
-let arb_cmd_case config value =
+let arb_cmd_case which config value =
+  let flag_from_which = function
+    | Gen -> evar "Seq"
+    | Seq -> evar "Seq"
+    | Dom0 -> evar "Dom0"
+    | Dom1 -> evar "Dom1"
+  in
   let open Reserr in
   let is_create = value.sut_vars = [] && Cfg.does_return_sut config value.ty in
   let epure = pexp_ident (lident "pure") in
@@ -406,10 +414,8 @@ let arb_cmd_case config value =
   in
   let app l r = pexp_apply (evar "( <*> )") [ (Nolabel, l); (Nolabel, r) ]
   and map l r = pexp_apply (evar "( <$> )") [ (Nolabel, l); (Nolabel, r) ] in
-  map (pexp_apply (evar "with_flag") [ (Nolabel, evar "Seq") ])
+  map (pexp_apply (evar "with_flag") [ (Nolabel, flag_from_which which) ])
   <$> (List.fold_left app fun_cstr <$> gen_args)
-
-type which = Gen | Seq | Dom0 | Dom1
 
 let lens_from_which = function
   | Gen -> Weight.seq
@@ -430,7 +436,7 @@ let arb_cmd_gen which config ir =
   let open Ppxlib in
   let lens = lens_from_which which and pat = pat_from_which which in
   let aux value (freq_map, acc) =
-    let* gen = arb_cmd_case config value in
+    let* gen = arb_cmd_case which config value in
     let freq, freq_map = Weight.pop lens (str_of_ident value.id) freq_map in
     ok @@ (freq_map, pexp_tuple [ eint freq; gen ] :: acc)
   in
@@ -474,7 +480,7 @@ let arb_cmd_domain_mode which config =
   in
   match opt_stri with
   | None ->
-      if Weight.(is_empty lens config.Cfg.weights) then
+      if which = Seq && Weight.(is_empty lens config.Cfg.weights) then
         Fun.const
         @@ Reserr.ok
         @@ pstr_value Nonrecursive [ value_binding ~pat ~expr ]

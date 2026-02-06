@@ -254,32 +254,57 @@ module Spec =
                  ((with_flag Seq) <$>
                     ((pure (fun a_3 -> Push_head a_3)) <*> int)))])
     let arb_cmd_seq = arb_cmd
-    let arb_cmd_dom0 = arb_cmd
+    let arb_cmd_dom0 _ =
+      let open QCheck in
+        make ~print:show_cmd
+          (let open Gen in
+             oneof_weighted
+               [(1,
+                  ((with_flag Dom0) <$>
+                     ((pure (fun () -> Create ())) <*> unit)));
+               (1,
+                 ((with_flag Dom0) <$>
+                    ((pure (fun xs -> Of_list xs)) <*> (list nat_small))));
+               (1,
+                 ((with_flag Dom0) <$> ((pure (fun a_2 -> Push a_2)) <*> int)));
+               (1,
+                 ((with_flag Dom0) <$>
+                    ((pure (fun xs_1 -> Push_all xs_1)) <*> (list int))));
+               (1, ((with_flag Dom0) <$> (pure Is_empty)));
+               (1, ((with_flag Dom0) <$> (pure Close)));
+               (1, ((with_flag Dom0) <$> (pure Pop_exn)));
+               (1, ((with_flag Dom0) <$> (pure Pop_opt)));
+               (1, ((with_flag Dom0) <$> (pure Drop_exn)));
+               (1, ((with_flag Dom0) <$> (pure Peek_exn)));
+               (1, ((with_flag Dom0) <$> (pure Peek_opt)));
+               (1,
+                 ((with_flag Dom0) <$>
+                    ((pure (fun a_3 -> Push_head a_3)) <*> int)))])
     let arb_cmd_dom1 _ =
       let open QCheck in
         make ~print:show_cmd
           (let open Gen in
              oneof_weighted
                [(0,
-                  ((with_flag Seq) <$>
+                  ((with_flag Dom1) <$>
                      ((pure (fun () -> Create ())) <*> unit)));
                (0,
-                 ((with_flag Seq) <$>
+                 ((with_flag Dom1) <$>
                     ((pure (fun xs -> Of_list xs)) <*> (list nat_small))));
                (1,
-                 ((with_flag Seq) <$> ((pure (fun a_2 -> Push a_2)) <*> int)));
+                 ((with_flag Dom1) <$> ((pure (fun a_2 -> Push a_2)) <*> int)));
                (1,
-                 ((with_flag Seq) <$>
+                 ((with_flag Dom1) <$>
                     ((pure (fun xs_1 -> Push_all xs_1)) <*> (list int))));
-               (0, ((with_flag Seq) <$> (pure Is_empty)));
-               (0, ((with_flag Seq) <$> (pure Close)));
-               (0, ((with_flag Seq) <$> (pure Pop_exn)));
-               (0, ((with_flag Seq) <$> (pure Pop_opt)));
-               (0, ((with_flag Seq) <$> (pure Drop_exn)));
-               (0, ((with_flag Seq) <$> (pure Peek_exn)));
-               (0, ((with_flag Seq) <$> (pure Peek_opt)));
+               (0, ((with_flag Dom1) <$> (pure Is_empty)));
+               (0, ((with_flag Dom1) <$> (pure Close)));
+               (0, ((with_flag Dom1) <$> (pure Pop_exn)));
+               (0, ((with_flag Dom1) <$> (pure Pop_opt)));
+               (0, ((with_flag Dom1) <$> (pure Drop_exn)));
+               (0, ((with_flag Dom1) <$> (pure Peek_exn)));
+               (0, ((with_flag Dom1) <$> (pure Peek_opt)));
                (0,
-                 ((with_flag Seq) <$>
+                 ((with_flag Dom1) <$>
                     ((pure (fun a_3 -> Push_head a_3)) <*> int)))])
     let next_state cmd__002_ state__003_ =
       match cmd__002_.raw_cmd with

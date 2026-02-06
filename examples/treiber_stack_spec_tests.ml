@@ -136,8 +136,44 @@ module Spec =
                  ((with_flag Seq) <$>
                     ((pure (fun xs_1 -> Push_all xs_1)) <*> (list int))))])
     let arb_cmd_seq = arb_cmd
-    let arb_cmd_dom0 = arb_cmd
-    let arb_cmd_dom1 = arb_cmd
+    let arb_cmd_dom0 _ =
+      let open QCheck in
+        make ~print:show_cmd
+          (let open Gen in
+             oneof_weighted
+               [(1,
+                  ((with_flag Dom0) <$>
+                     ((pure (fun () -> Create ())) <*> unit)));
+               (1,
+                 ((with_flag Dom0) <$>
+                    ((pure (fun xs -> Of_list xs)) <*> (list nat_small))));
+               (1, ((with_flag Dom0) <$> (pure Is_empty)));
+               (1, ((with_flag Dom0) <$> (pure Peek_opt)));
+               (1, ((with_flag Dom0) <$> (pure Pop_opt)));
+               (1, ((with_flag Dom0) <$> (pure Pop_all)));
+               (1, ((with_flag Dom0) <$> ((pure (fun x -> Push x)) <*> int)));
+               (1,
+                 ((with_flag Dom0) <$>
+                    ((pure (fun xs_1 -> Push_all xs_1)) <*> (list int))))])
+    let arb_cmd_dom1 _ =
+      let open QCheck in
+        make ~print:show_cmd
+          (let open Gen in
+             oneof_weighted
+               [(1,
+                  ((with_flag Dom1) <$>
+                     ((pure (fun () -> Create ())) <*> unit)));
+               (1,
+                 ((with_flag Dom1) <$>
+                    ((pure (fun xs -> Of_list xs)) <*> (list nat_small))));
+               (1, ((with_flag Dom1) <$> (pure Is_empty)));
+               (1, ((with_flag Dom1) <$> (pure Peek_opt)));
+               (1, ((with_flag Dom1) <$> (pure Pop_opt)));
+               (1, ((with_flag Dom1) <$> (pure Pop_all)));
+               (1, ((with_flag Dom1) <$> ((pure (fun x -> Push x)) <*> int)));
+               (1,
+                 ((with_flag Dom1) <$>
+                    ((pure (fun xs_1 -> Push_all xs_1)) <*> (list int))))])
     let next_state cmd__002_ state__003_ =
       match cmd__002_.raw_cmd with
       | Create () ->

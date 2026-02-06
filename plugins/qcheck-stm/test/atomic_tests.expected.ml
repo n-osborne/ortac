@@ -141,24 +141,24 @@ module Spec =
           (let open Gen in
              oneof_weighted
                [(1,
-                  ((with_flag Seq) <$>
+                  ((with_flag Dom1) <$>
                      ((pure (fun v -> Make v)) <*> nat_small)));
-               (2, ((with_flag Seq) <$> (pure Get)));
+               (2, ((with_flag Dom1) <$> (pure Get)));
                (1,
-                 ((with_flag Seq) <$> ((pure (fun v_1 -> Set v_1)) <*> int)));
+                 ((with_flag Dom1) <$> ((pure (fun v_1 -> Set v_1)) <*> int)));
                (1,
-                 ((with_flag Seq) <$>
+                 ((with_flag Dom1) <$>
                     ((pure (fun v_2 -> Exchange v_2)) <*> int)));
                (1,
-                 ((with_flag Seq) <$>
+                 ((with_flag Dom1) <$>
                     (((pure (fun seen v_3 -> Compare_and_set (seen, v_3)))
                         <*> int)
                        <*> int)));
                (1,
-                 ((with_flag Seq) <$>
+                 ((with_flag Dom1) <$>
                     ((pure (fun n -> Fetch_and_add n)) <*> int)));
-               (1, ((with_flag Seq) <$> (pure Incr)));
-               (1, ((with_flag Seq) <$> (pure Decr)))])
+               (1, ((with_flag Dom1) <$> (pure Incr)));
+               (1, ((with_flag Dom1) <$> (pure Decr)))])
     let next_state cmd__002_ state__003_ =
       match cmd__002_.raw_cmd with
       | Make v ->
