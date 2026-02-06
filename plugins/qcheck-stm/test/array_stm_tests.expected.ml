@@ -307,7 +307,9 @@ module Spec =
                                     }
                                 })))
                 } in
-            Model.push (Model.drop_n state__003_ 0) t_4__015_
+            (if cmd__002_.flag = Seq
+             then Model.push (Model.drop_n state__003_ 0) t_4__015_
+             else Model.drop_n state__003_ 0)
           else state__003_
       | Append ->
           let a_4__016_ = Model.get state__003_ 0
@@ -368,9 +370,14 @@ module Spec =
               }
           and a_4__020_ = a_4__016_
           and b__019_ = b__017_ in
-          Model.push
-            (Model.push (Model.push (Model.drop_n state__003_ 2) b__019_)
-               a_4__020_) t_5__021_
+          if cmd__002_.flag = Seq
+          then
+            Model.push
+              (Model.push (Model.push (Model.drop_n state__003_ 2) b__019_)
+                 a_4__020_) t_5__021_
+          else
+            Model.push (Model.push (Model.drop_n state__003_ 2) b__019_)
+              a_4__020_
       | Sub (i_3, n) ->
           let t_6__022_ = Model.get state__003_ 0 in
           if
@@ -468,8 +475,11 @@ module Spec =
                                 })))
                 }
             and t_6__024_ = t_6__022_ in
-            Model.push (Model.push (Model.drop_n state__003_ 1) t_6__024_)
-              r__025_
+            (if cmd__002_.flag = Seq
+             then
+               Model.push (Model.push (Model.drop_n state__003_ 1) t_6__024_)
+                 r__025_
+             else Model.push (Model.drop_n state__003_ 1) t_6__024_)
           else state__003_
       | Copy ->
           let t_7__030_ = Model.get state__003_ 0 in
@@ -524,8 +534,11 @@ module Spec =
                               })))
               }
           and t_7__032_ = t_7__030_ in
-          Model.push (Model.push (Model.drop_n state__003_ 1) t_7__032_)
-            r_1__033_
+          if cmd__002_.flag = Seq
+          then
+            Model.push (Model.push (Model.drop_n state__003_ 1) t_7__032_)
+              r_1__033_
+          else Model.push (Model.drop_n state__003_ 1) t_7__032_
       | Fill (pos, len, x) ->
           let t_8__034_ = Model.get state__003_ 0 in
           if
@@ -653,7 +666,9 @@ module Spec =
                                   }
                               })))
               } in
-          Model.push (Model.drop_n state__003_ 0) t_10__041_
+          if cmd__002_.flag = Seq
+          then Model.push (Model.drop_n state__003_ 0) t_10__041_
+          else Model.drop_n state__003_ 0
       | Mem a_3 ->
           let t_11__042_ = Model.get state__003_ 0 in
           let t_11__043_ = t_11__042_ in
@@ -701,7 +716,10 @@ module Spec =
             ((result sut exn),
               (let res__099_ = protect (fun () -> make i_2 a_2) () in
                ((match res__099_ with
-                 | Ok res -> SUT.push sut__092_ res
+                 | Ok res ->
+                     if cmd__091_.flag = Seq
+                     then SUT.push sut__092_ res
+                     else ()
                  | Error _ -> ());
                 res__099_)))
       | Append ->
@@ -710,14 +728,20 @@ module Spec =
               (let a_4__100_ = SUT.get sut__092_ 0 in
                let b__101_ = SUT.get sut__092_ 1 in
                let res__102_ = append a_4__100_ b__101_ in
-               (SUT.push sut__092_ res__102_; res__102_)))
+               (if cmd__091_.flag = Seq
+                then SUT.push sut__092_ res__102_
+                else ();
+                res__102_)))
       | Sub (i_3, n) ->
           Res
             ((result sut exn),
               (let t_6__103_ = SUT.get sut__092_ 0 in
                let res__104_ = protect (fun () -> sub t_6__103_ i_3 n) () in
                ((match res__104_ with
-                 | Ok res -> SUT.push sut__092_ res
+                 | Ok res ->
+                     if cmd__091_.flag = Seq
+                     then SUT.push sut__092_ res
+                     else ()
                  | Error _ -> ());
                 res__104_)))
       | Copy ->
@@ -725,7 +749,10 @@ module Spec =
             (sut,
               (let t_7__105_ = SUT.get sut__092_ 0 in
                let res__106_ = copy t_7__105_ in
-               (SUT.push sut__092_ res__106_; res__106_)))
+               (if cmd__091_.flag = Seq
+                then SUT.push sut__092_ res__106_
+                else ();
+                res__106_)))
       | Fill (pos, len, x) ->
           Res
             ((result unit exn),
@@ -742,7 +769,10 @@ module Spec =
           Res
             (sut,
               (let res__111_ = of_list l in
-               (SUT.push sut__092_ res__111_; res__111_)))
+               (if cmd__091_.flag = Seq
+                then SUT.push sut__092_ res__111_
+                else ();
+                res__111_)))
       | Mem a_3 ->
           Res
             (bool,

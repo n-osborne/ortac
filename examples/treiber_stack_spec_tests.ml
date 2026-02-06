@@ -204,7 +204,9 @@ module Spec =
                                   }
                               })))
               } in
-          Model.drop_n state__003_ 0
+          if cmd__002_.flag = Seq
+          then Model.push (Model.drop_n state__003_ 0) a_1__005_
+          else Model.drop_n state__003_ 0
       | Of_list xs ->
           let a_2__007_ =
             let open ModelElt in
@@ -233,7 +235,9 @@ module Spec =
                                   }
                               })))
               } in
-          Model.drop_n state__003_ 0
+          if cmd__002_.flag = Seq
+          then Model.push (Model.drop_n state__003_ 0) a_2__007_
+          else Model.drop_n state__003_ 0
       | Is_empty ->
           let a_3__008_ = Model.get state__003_ 0 in
           let a_3__009_ = a_3__008_ in
@@ -386,8 +390,22 @@ module Spec =
     let postcond _ _ _ = true
     let run cmd__048_ sut__049_ =
       match cmd__048_.raw_cmd with
-      | Create () -> Res (sut, (let res__050_ = create () in res__050_))
-      | Of_list xs -> Res (sut, (let res__051_ = of_list xs in res__051_))
+      | Create () ->
+          Res
+            (sut,
+              (let res__050_ = create () in
+               (if cmd__048_.flag = Seq
+                then SUT.push sut__049_ res__050_
+                else ();
+                res__050_)))
+      | Of_list xs ->
+          Res
+            (sut,
+              (let res__051_ = of_list xs in
+               (if cmd__048_.flag = Seq
+                then SUT.push sut__049_ res__051_
+                else ();
+                res__051_)))
       | Is_empty ->
           Res
             (bool,

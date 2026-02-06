@@ -359,7 +359,9 @@ module Spec =
                                   }
                               })))
               } in
-          Model.drop_n state__003_ 0
+          if cmd__002_.flag = Seq
+          then Model.push (Model.drop_n state__003_ 0) q_3__005_
+          else Model.drop_n state__003_ 0
       | Of_list xs ->
           let q_4__007_ =
             let open ModelElt in
@@ -411,7 +413,9 @@ module Spec =
                                   }
                               })))
               } in
-          Model.drop_n state__003_ 0
+          if cmd__002_.flag = Seq
+          then Model.push (Model.drop_n state__003_ 0) q_4__007_
+          else Model.drop_n state__003_ 0
       | Push a_2 ->
           let q_5__008_ = Model.get state__003_ 0 in
           let q_5__009_ =
@@ -693,8 +697,22 @@ module Spec =
     let postcond _ _ _ = true
     let run cmd__090_ sut__091_ =
       match cmd__090_.raw_cmd with
-      | Create () -> Res (sut, (let res__092_ = create () in res__092_))
-      | Of_list xs -> Res (sut, (let res__093_ = of_list xs in res__093_))
+      | Create () ->
+          Res
+            (sut,
+              (let res__092_ = create () in
+               (if cmd__090_.flag = Seq
+                then SUT.push sut__091_ res__092_
+                else ();
+                res__092_)))
+      | Of_list xs ->
+          Res
+            (sut,
+              (let res__093_ = of_list xs in
+               (if cmd__090_.flag = Seq
+                then SUT.push sut__091_ res__093_
+                else ();
+                res__093_)))
       | Push a_2 ->
           Res
             ((result unit exn),

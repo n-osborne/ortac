@@ -104,7 +104,9 @@ module Spec =
                                   }
                               })))
               } in
-          Model.push (Model.drop_n state__003_ 0) t_1__005_
+          if cmd__002_.flag = Seq
+          then Model.push (Model.drop_n state__003_ 0) t_1__005_
+          else Model.drop_n state__003_ 0
     let precond cmd__010_ state__011_ =
       match cmd__010_.raw_cmd with | Make a_1 -> true
     let postcond _ _ _ = true
@@ -114,7 +116,10 @@ module Spec =
           Res
             (sut,
               (let res__014_ = make a_1 in
-               (SUT.push sut__013_ res__014_; res__014_)))
+               (if cmd__012_.flag = Seq
+                then SUT.push sut__013_ res__014_
+                else ();
+                res__014_)))
   end
 module STMTests = (Ortac_runtime.Make)(Spec)
 let check_init_state () = ()
