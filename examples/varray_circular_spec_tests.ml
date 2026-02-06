@@ -156,6 +156,7 @@ module Spec =
     type flagged_cmd = {
       flag: flag ;
       cmd: cmd }
+    let with_flag flag cmd = { flag; cmd }
     let show_cmd cmd__003_ =
       match cmd__003_ with
       | Push_back x ->

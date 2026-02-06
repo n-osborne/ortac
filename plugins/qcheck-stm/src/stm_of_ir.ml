@@ -1248,6 +1248,20 @@ let flagged_cmd_type =
   let td = type_declaration ~name ~params ~cstrs ~kind ~private_ ~manifest in
   pstr_type Recursive [ td ]
 
+let with_flag =
+  let pat = ppat_var @@ noloc "with_flag"
+  and expr =
+    efun
+      [
+        (Nolabel, ppat_var @@ noloc "flag"); (Nolabel, ppat_var @@ noloc "cmd");
+      ]
+      (pexp_record
+         [ (lident "flag", evar "flag"); (lident "cmd", evar "cmd") ]
+         None)
+  in
+  let value_bindings = [ value_binding ~pat ~expr ] in
+  pstr_value Nonrecursive value_bindings
+
 let get_max_suts ir =
   List.fold_left
     (fun curr value ->
@@ -1836,7 +1850,15 @@ let stm config ir =
       @ tuple_types ir
       @ sut_defs
       @ state_defs
-      @ [ cmd; flag_type; flagged_cmd_type; cmd_show; cleanup; arb_cmd ]
+      @ [
+          cmd;
+          flag_type;
+          flagged_cmd_type;
+          with_flag;
+          cmd_show;
+          cleanup;
+          arb_cmd;
+        ]
       @ arb_cmds
       @ [ next_state; precond; dummy_postcond; run ])
   in

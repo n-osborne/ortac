@@ -70,6 +70,7 @@ module Spec =
     type flagged_cmd = {
       flag: flag ;
       cmd: cmd }
+    let with_flag flag cmd = { flag; cmd }
     let show_cmd cmd__001_ =
       match cmd__001_ with
       | Make (i, a_1) ->

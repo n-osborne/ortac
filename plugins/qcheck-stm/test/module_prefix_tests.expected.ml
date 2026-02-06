@@ -61,6 +61,7 @@ module Spec =
     type flagged_cmd = {
       flag: flag ;
       cmd: cmd }
+    let with_flag flag cmd = { flag; cmd }
     let show_cmd cmd__001_ =
       match cmd__001_ with
       | Make a_1 -> Format.asprintf "%s %a" "make" (Util.Pp.pp_int true) a_1
