@@ -1214,6 +1214,40 @@ let cmd_show config ir =
   let expr = efun [ (Nolabel, pvar cmd_name) ] body in
   pstr_value Nonrecursive [ value_binding ~pat ~expr ] |> ok
 
+let flag_type =
+  let constructors =
+    let mk_constructor str =
+      constructor_declaration ~name:(noloc str) ~args:(Pcstr_tuple []) ~res:None
+    in
+    List.map mk_constructor [ "Seq"; "Dom0"; "Dom1" ]
+  in
+  let name = noloc "flag"
+  and params = []
+  and cstrs = []
+  and kind = Ptype_variant constructors
+  and private_ = Public
+  and manifest = None in
+  let td = type_declaration ~name ~params ~cstrs ~kind ~private_ ~manifest in
+  pstr_type Recursive [ td ]
+
+let flagged_cmd_type =
+  let name = noloc "flagged_cmd"
+  and params = []
+  and cstrs = []
+  and kind =
+    let mutable_ = Immutable in
+    Ptype_record
+      [
+        label_declaration ~name:(noloc "flag") ~mutable_
+          ~type_:(ptyp_constr (lident "flag") []);
+        label_declaration ~name:(noloc "cmd") ~mutable_
+          ~type_:(ptyp_constr (lident "cmd") []);
+      ]
+  and private_ = Public
+  and manifest = None in
+  let td = type_declaration ~name ~params ~cstrs ~kind ~private_ ~manifest in
+  pstr_type Recursive [ td ]
+
 let get_max_suts ir =
   List.fold_left
     (fun curr value ->
@@ -1762,7 +1796,7 @@ let stm config ir =
   let open Reserr in
   let* ghost_types = ghost_types config ir.ghost_types in
   let* config, ghost_functions = ghost_functions config ir.ghost_functions in
-  let warn = [%stri [@@@ocaml.warning "-26-27-69-32-34-38"]] in
+  let warn = [%stri [@@@ocaml.warning "-26-27-69-32-34-37-38"]] in
   let cmd = cmd_type ir in
   let* cmd_show = cmd_show config ir in
   let* idx, next_state = next_state config ir in
@@ -1802,7 +1836,7 @@ let stm config ir =
       @ tuple_types ir
       @ sut_defs
       @ state_defs
-      @ [ cmd; cmd_show; cleanup; arb_cmd ]
+      @ [ cmd; flag_type; flagged_cmd_type; cmd_show; cleanup; arb_cmd ]
       @ arb_cmds
       @ [ next_state; precond; dummy_postcond; run ])
   in
