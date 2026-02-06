@@ -74,7 +74,7 @@ module Spec =
     let init_sut = SUT.create 1
     type state = Model.t
     let init_state = Model.create 1 ()
-    type cmd =
+    type raw_cmd =
       | Proj of char elt 
       | Empty of unit 
       | Push of int elt 
@@ -83,12 +83,12 @@ module Spec =
       | Seq 
       | Dom0 
       | Dom1 
-    type flagged_cmd = {
+    type cmd = {
       flag: flag ;
-      cmd: cmd }
-    let with_flag flag cmd = { flag; cmd }
+      raw_cmd: raw_cmd }
+    let with_flag flag raw_cmd = { flag; raw_cmd }
     let show_cmd cmd__001_ =
-      match cmd__001_ with
+      match cmd__001_.raw_cmd with
       | Proj __arg0 ->
           Format.asprintf "%s %a" "proj"
             (Util.Pp.pp_elt Util.Pp.pp_char true) __arg0
@@ -103,12 +103,17 @@ module Spec =
         make ~print:show_cmd
           (let open Gen in
              oneof_weighted
-               [(1, ((pure (fun __arg0 -> Proj __arg0)) <*> (elt char)));
-               (1, ((pure (fun () -> Empty ())) <*> unit));
-               (1, ((pure (fun e -> Push e)) <*> (elt int)));
-               (1, (pure Top))])
+               [(1,
+                  ((with_flag Seq) <$>
+                     ((pure (fun __arg0 -> Proj __arg0)) <*> (elt char))));
+               (1,
+                 ((with_flag Seq) <$> ((pure (fun () -> Empty ())) <*> unit)));
+               (1,
+                 ((with_flag Seq) <$>
+                    ((pure (fun e -> Push e)) <*> (elt int))));
+               (1, ((with_flag Seq) <$> (pure Top)))])
     let next_state cmd__002_ state__003_ =
-      match cmd__002_ with
+      match cmd__002_.raw_cmd with
       | Proj __arg0 -> state__003_
       | Empty () ->
           let t_1__005_ =
@@ -184,14 +189,14 @@ module Spec =
             Model.push (Model.drop_n state__003_ 1) t_3__009_
           else state__003_
     let precond cmd__018_ state__019_ =
-      match cmd__018_ with
+      match cmd__018_.raw_cmd with
       | Proj __arg0 -> true
       | Empty () -> true
       | Push e -> true
       | Top -> true
     let postcond _ _ _ = true
     let run cmd__020_ sut__021_ =
-      match cmd__020_ with
+      match cmd__020_.raw_cmd with
       | Proj __arg0 -> Res (char, (let res__022_ = proj __arg0 in res__022_))
       | Empty () ->
           Res
@@ -215,7 +220,7 @@ let check_init_state () = ()
 let ortac_show_cmd cmd__029_ models__030_ last__032_ res__031_ =
   let open Spec in
     let open STM in
-      match (cmd__029_, res__031_) with
+      match ((cmd__029_.raw_cmd), res__031_) with
       | (Proj __arg0, Res ((Char, _), _)) ->
           let lhs = if last__032_ then "r" else "_"
           and shift = 0 in
@@ -242,7 +247,7 @@ let ortac_postcond cmd__010_ state__011_ res__012_ =
   let open Spec in
     let open STM in
       let new_state__013_ = lazy (next_state cmd__010_ state__011_) in
-      match (cmd__010_, res__012_) with
+      match ((cmd__010_.raw_cmd), res__012_) with
       | (Proj __arg0, Res ((Char, _), result)) -> None
       | (Empty (), Res ((SUT, _), t_1)) -> None
       | (Push e, Res ((Unit, _), _)) -> None

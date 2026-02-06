@@ -77,7 +77,7 @@ module Spec =
     let init_sut = SUT.create 1
     type state = Model.t
     let init_state = Model.create 1 ()
-    type cmd =
+    type raw_cmd =
       | Make of int 
       | Plus1 of int 
       | Plus2 of int 
@@ -86,12 +86,12 @@ module Spec =
       | Seq 
       | Dom0 
       | Dom1 
-    type flagged_cmd = {
+    type cmd = {
       flag: flag ;
-      cmd: cmd }
-    let with_flag flag cmd = { flag; cmd }
+      raw_cmd: raw_cmd }
+    let with_flag flag raw_cmd = { flag; raw_cmd }
     let show_cmd cmd__001_ =
-      match cmd__001_ with
+      match cmd__001_.raw_cmd with
       | Make i_1 -> Format.asprintf "%s %a" "make" (Util.Pp.pp_int true) i_1
       | Plus1 i_2 ->
           Format.asprintf "%s %a" "plus1" (Util.Pp.pp_int true) i_2
@@ -104,12 +104,16 @@ module Spec =
         make ~print:show_cmd
           (let open Gen in
              oneof_weighted
-               [(1, ((pure (fun i_1 -> Make i_1)) <*> nat_small));
-               (1, ((pure (fun i_2 -> Plus1 i_2)) <*> int));
-               (1, ((pure (fun i_3 -> Plus2 i_3)) <*> int));
-               (1, (pure Get))])
+               [(1,
+                  ((with_flag Seq) <$>
+                     ((pure (fun i_1 -> Make i_1)) <*> nat_small)));
+               (1,
+                 ((with_flag Seq) <$> ((pure (fun i_2 -> Plus1 i_2)) <*> int)));
+               (1,
+                 ((with_flag Seq) <$> ((pure (fun i_3 -> Plus2 i_3)) <*> int)));
+               (1, ((with_flag Seq) <$> (pure Get)))])
     let next_state cmd__002_ state__003_ =
-      match cmd__002_ with
+      match cmd__002_.raw_cmd with
       | Make i_1 ->
           let r__005_ =
             let open ModelElt in
@@ -146,14 +150,14 @@ module Spec =
           let r_1__007_ = r_1__006_ in
           Model.push (Model.drop_n state__003_ 1) r_1__007_
     let precond cmd__027_ state__028_ =
-      match cmd__027_ with
+      match cmd__027_.raw_cmd with
       | Make i_1 -> true
       | Plus1 i_2 -> true
       | Plus2 i_3 -> true
       | Get -> true
     let postcond _ _ _ = true
     let run cmd__029_ sut__030_ =
-      match cmd__029_ with
+      match cmd__029_.raw_cmd with
       | Make i_1 ->
           Res
             (sut,
@@ -172,7 +176,7 @@ let check_init_state () = ()
 let ortac_show_cmd cmd__037_ models__038_ last__040_ res__039_ =
   let open Spec in
     let open STM in
-      match (cmd__037_, res__039_) with
+      match ((cmd__037_.raw_cmd), res__039_) with
       | (Make i_1, Res ((SUT, _), r)) ->
           let lhs = if last__040_ then "r" else Model.get_name models__038_ 0
           and shift = 1 in
@@ -198,7 +202,7 @@ let ortac_postcond cmd__008_ state__009_ res__010_ =
   let open Spec in
     let open STM in
       let new_state__011_ = lazy (next_state cmd__008_ state__009_) in
-      match (cmd__008_, res__010_) with
+      match ((cmd__008_.raw_cmd), res__010_) with
       | (Make i_1, Res ((SUT, _), r)) -> None
       | (Plus1 i_2, Res ((Int, _), i1)) ->
           if

@@ -58,7 +58,7 @@ module Spec =
     let init_sut = SUT.create 1
     type state = Model.t
     let init_state = Model.create 1 ()
-    type cmd =
+    type raw_cmd =
       | Make of int 
       | Get 
       | Set of int 
@@ -71,12 +71,12 @@ module Spec =
       | Seq 
       | Dom0 
       | Dom1 
-    type flagged_cmd = {
+    type cmd = {
       flag: flag ;
-      cmd: cmd }
-    let with_flag flag cmd = { flag; cmd }
+      raw_cmd: raw_cmd }
+    let with_flag flag raw_cmd = { flag; raw_cmd }
     let show_cmd cmd__001_ =
-      match cmd__001_ with
+      match cmd__001_.raw_cmd with
       | Make v -> Format.asprintf "%s %a" "make" (Util.Pp.pp_int true) v
       | Get -> Format.asprintf "%s <sut>" "get"
       | Set v_1 ->
@@ -97,51 +97,70 @@ module Spec =
         make ~print:show_cmd
           (let open Gen in
              oneof_weighted
-               [(1, ((pure (fun v -> Make v)) <*> nat_small));
-               (1, (pure Get));
-               (1, ((pure (fun v_1 -> Set v_1)) <*> int));
-               (1, ((pure (fun v_2 -> Exchange v_2)) <*> int));
+               [(1,
+                  ((with_flag Seq) <$>
+                     ((pure (fun v -> Make v)) <*> nat_small)));
+               (1, ((with_flag Seq) <$> (pure Get)));
                (1,
-                 (((pure (fun seen v_3 -> Compare_and_set (seen, v_3))) <*>
-                     int)
-                    <*> int));
-               (1, ((pure (fun n -> Fetch_and_add n)) <*> int));
-               (1, (pure Incr));
-               (1, (pure Decr))])
+                 ((with_flag Seq) <$> ((pure (fun v_1 -> Set v_1)) <*> int)));
+               (1,
+                 ((with_flag Seq) <$>
+                    ((pure (fun v_2 -> Exchange v_2)) <*> int)));
+               (1,
+                 ((with_flag Seq) <$>
+                    (((pure (fun seen v_3 -> Compare_and_set (seen, v_3)))
+                        <*> int)
+                       <*> int)));
+               (1,
+                 ((with_flag Seq) <$>
+                    ((pure (fun n -> Fetch_and_add n)) <*> int)));
+               (1, ((with_flag Seq) <$> (pure Incr)));
+               (1, ((with_flag Seq) <$> (pure Decr)))])
     let arb_cmd_seq = arb_cmd
     let arb_cmd_dom0 _ =
       let open QCheck in
         make ~print:show_cmd
           (let open Gen in
-             oneof_weighted
-               [(1, (pure Get));
-               (1, ((pure (fun v_1 -> Set v_1)) <*> int));
-               (1, ((pure (fun v_2 -> Exchange v_2)) <*> int));
-               (1,
-                 (((pure (fun seen -> fun v_3 -> Compare_and_set (seen, v_3)))
-                     <*> int)
-                    <*> int));
-               (1, ((pure (fun n -> Fetch_and_add n)) <*> int));
-               (1, (pure Incr));
-               (1, (pure Decr))])
+             let* raw_cmd =
+               oneof_weighted
+                 [(1, (pure Get));
+                 (1, ((pure (fun v_1 -> Set v_1)) <*> int));
+                 (1, ((pure (fun v_2 -> Exchange v_2)) <*> int));
+                 (1,
+                   (((pure
+                        (fun seen -> fun v_3 -> Compare_and_set (seen, v_3)))
+                       <*> int)
+                      <*> int));
+                 (1, ((pure (fun n -> Fetch_and_add n)) <*> int));
+                 (1, (pure Incr));
+                 (1, (pure Decr))]
+              in return { flag = Dom0; raw_cmd })
     let arb_cmd_dom1 _ =
       let open QCheck in
         make ~print:show_cmd
           (let open Gen in
              oneof_weighted
-               [(1, ((pure (fun v -> Make v)) <*> nat_small));
-               (2, (pure Get));
-               (1, ((pure (fun v_1 -> Set v_1)) <*> int));
-               (1, ((pure (fun v_2 -> Exchange v_2)) <*> int));
+               [(1,
+                  ((with_flag Seq) <$>
+                     ((pure (fun v -> Make v)) <*> nat_small)));
+               (2, ((with_flag Seq) <$> (pure Get)));
                (1,
-                 (((pure (fun seen v_3 -> Compare_and_set (seen, v_3))) <*>
-                     int)
-                    <*> int));
-               (1, ((pure (fun n -> Fetch_and_add n)) <*> int));
-               (1, (pure Incr));
-               (1, (pure Decr))])
+                 ((with_flag Seq) <$> ((pure (fun v_1 -> Set v_1)) <*> int)));
+               (1,
+                 ((with_flag Seq) <$>
+                    ((pure (fun v_2 -> Exchange v_2)) <*> int)));
+               (1,
+                 ((with_flag Seq) <$>
+                    (((pure (fun seen v_3 -> Compare_and_set (seen, v_3)))
+                        <*> int)
+                       <*> int)));
+               (1,
+                 ((with_flag Seq) <$>
+                    ((pure (fun n -> Fetch_and_add n)) <*> int)));
+               (1, ((with_flag Seq) <$> (pure Incr)));
+               (1, ((with_flag Seq) <$> (pure Decr)))])
     let next_state cmd__002_ state__003_ =
-      match cmd__002_ with
+      match cmd__002_.raw_cmd with
       | Make v ->
           let r__005_ =
             let open ModelElt in
@@ -374,7 +393,7 @@ module Spec =
               } in
           Model.push (Model.drop_n state__003_ 1) r_7__019_
     let precond cmd__047_ state__048_ =
-      match cmd__047_ with
+      match cmd__047_.raw_cmd with
       | Make v -> true
       | Get -> true
       | Set v_1 -> true
@@ -385,7 +404,7 @@ module Spec =
       | Decr -> true
     let postcond _ _ _ = true
     let run cmd__049_ sut__050_ =
-      match cmd__049_ with
+      match cmd__049_.raw_cmd with
       | Make v -> Res (sut, (let res__051_ = make v in res__051_))
       | Get ->
           Res
@@ -429,7 +448,7 @@ let check_init_state () = ()
 let ortac_show_cmd cmd__067_ models__068_ last__070_ res__069_ =
   let open Spec in
     let open STM in
-      match (cmd__067_, res__069_) with
+      match ((cmd__067_.raw_cmd), res__069_) with
       | (Make v, Res ((SUT, _), r)) ->
           let lhs = if last__070_ then "r" else "_"
           and shift = 0 in
@@ -477,7 +496,7 @@ let ortac_postcond cmd__020_ state__021_ res__022_ =
   let open Spec in
     let open STM in
       let new_state__023_ = lazy (next_state cmd__020_ state__021_) in
-      match (cmd__020_, res__022_) with
+      match ((cmd__020_.raw_cmd), res__022_) with
       | (Make v, Res ((SUT, _), r)) -> None
       | (Get, Res ((Int, _), v_4)) ->
           if

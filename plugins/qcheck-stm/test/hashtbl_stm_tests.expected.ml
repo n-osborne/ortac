@@ -91,7 +91,7 @@ module Spec =
     let init_sut = SUT.create 1
     type state = Model.t
     let init_state = Model.create 1 ()
-    type cmd =
+    type raw_cmd =
       | Create of bool * int 
       | Clear 
       | Reset 
@@ -109,12 +109,12 @@ module Spec =
       | Seq 
       | Dom0 
       | Dom1 
-    type flagged_cmd = {
+    type cmd = {
       flag: flag ;
-      cmd: cmd }
-    let with_flag flag cmd = { flag; cmd }
+      raw_cmd: raw_cmd }
+    let with_flag flag raw_cmd = { flag; raw_cmd }
     let show_cmd cmd__001_ =
-      match cmd__001_ with
+      match cmd__001_.raw_cmd with
       | Create (random, size) ->
           Format.asprintf "%s %a %a" "create" (Util.Pp.pp_bool true) random
             (Util.Pp.pp_int true) size
@@ -156,32 +156,35 @@ module Spec =
                match keys with
                | [] -> char
                | xs -> oneof [char; oneof_list xs] in
-             oneof_weighted
-               [(1,
-                  (((pure (fun random -> fun size -> Create (random, size)))
-                      <*> bool)
-                     <*> nat_small));
-               (1, (pure Clear));
-               (1, (pure Reset));
-               (1, (pure Copy));
-               (1,
-                 (((pure (fun a_1 -> fun b_1 -> Add (a_1, b_1))) <*> char)
-                    <*> int));
-               (1, ((pure (fun a_2 -> Find a_2)) <*> char));
-               (1, ((pure (fun a_3 -> Find_opt a_3)) <*> char));
-               (1, ((pure (fun a_4 -> Find_all a_4)) <*> char));
-               (1, ((pure (fun a_5 -> Mem a_5)) <*> char));
-               (1, ((pure (fun a_6 -> Remove a_6)) <*> char));
-               (1,
-                 (((pure (fun a_7 -> fun b_2 -> Replace (a_7, b_2))) <*> char)
-                    <*> int));
-               (1,
-                 ((pure (fun f -> Filter_map_inplace f)) <*>
-                    (fun2 Observable.char Observable.int
-                       (QCheck.option QCheck.int)).gen));
-               (1, (pure Length))])
+             let* raw_cmd =
+               oneof_weighted
+                 [(1,
+                    (((pure (fun random -> fun size -> Create (random, size)))
+                        <*> bool)
+                       <*> int_small));
+                 (1, (pure Clear));
+                 (1, (pure Reset));
+                 (1, (pure Copy));
+                 (1,
+                   (((pure (fun a_1 -> fun b_1 -> Add (a_1, b_1))) <*> char)
+                      <*> int));
+                 (1, ((pure (fun a_2 -> Find a_2)) <*> char));
+                 (1, ((pure (fun a_3 -> Find_opt a_3)) <*> char));
+                 (1, ((pure (fun a_4 -> Find_all a_4)) <*> char));
+                 (1, ((pure (fun a_5 -> Mem a_5)) <*> char));
+                 (1, ((pure (fun a_6 -> Remove a_6)) <*> char));
+                 (1,
+                   (((pure (fun a_7 -> fun b_2 -> Replace (a_7, b_2))) <*>
+                       char)
+                      <*> int));
+                 (1,
+                   ((pure (fun f -> Filter_map_inplace f)) <*>
+                      (fun2 Observable.char Observable.int
+                         (QCheck.option QCheck.int)).gen));
+                 (1, (pure Length))]
+              in return { flag = Seq; raw_cmd })
     let next_state cmd__002_ state__003_ =
-      match cmd__002_ with
+      match cmd__002_.raw_cmd with
       | Create (random, size) ->
           let h__005_ =
             let open ModelElt in
@@ -453,7 +456,7 @@ module Spec =
           let h_11__031_ = h_11__030_ in
           Model.push (Model.drop_n state__003_ 1) h_11__031_
     let precond cmd__066_ state__067_ =
-      match cmd__066_ with
+      match cmd__066_.raw_cmd with
       | Create (random, size) -> true
       | Clear -> true
       | Reset -> true
@@ -469,7 +472,7 @@ module Spec =
       | Length -> true
     let postcond _ _ _ = true
     let run cmd__068_ sut__069_ =
-      match cmd__068_ with
+      match cmd__068_.raw_cmd with
       | Create (random, size) ->
           Res
             (sut,
@@ -545,7 +548,7 @@ let check_init_state () = ()
 let ortac_show_cmd cmd__096_ models__097_ last__099_ res__098_ =
   let open Spec in
     let open STM in
-      match (cmd__096_, res__098_) with
+      match ((cmd__096_.raw_cmd), res__098_) with
       | (Create (random, size), Res ((SUT, _), h)) ->
           let lhs = if last__099_ then "r" else Model.get_name models__097_ 0
           and shift = 1 in
@@ -624,7 +627,7 @@ let ortac_postcond cmd__032_ state__033_ res__034_ =
   let open Spec in
     let open STM in
       let new_state__035_ = lazy (next_state cmd__032_ state__033_) in
-      match (cmd__032_, res__034_) with
+      match ((cmd__032_.raw_cmd), res__034_) with
       | (Create (random, size), Res ((SUT, _), h)) -> None
       | (Clear, Res ((Unit, _), _)) -> None
       | (Reset, Res ((Unit, _), _)) -> None

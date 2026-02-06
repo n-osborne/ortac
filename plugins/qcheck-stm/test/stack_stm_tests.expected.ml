@@ -54,7 +54,7 @@ module Spec =
     let init_sut = SUT.create 1
     type state = Model.t
     let init_state = Model.create 1 ()
-    type cmd =
+    type raw_cmd =
       | Create of unit 
       | Push of char 
       | Pop 
@@ -68,12 +68,12 @@ module Spec =
       | Seq 
       | Dom0 
       | Dom1 
-    type flagged_cmd = {
+    type cmd = {
       flag: flag ;
-      cmd: cmd }
-    let with_flag flag cmd = { flag; cmd }
+      raw_cmd: raw_cmd }
+    let with_flag flag raw_cmd = { flag; raw_cmd }
     let show_cmd cmd__001_ =
-      match cmd__001_ with
+      match cmd__001_.raw_cmd with
       | Create () ->
           Format.asprintf "%s %a" "create" (Util.Pp.pp_unit true) ()
       | Push v ->
@@ -91,17 +91,19 @@ module Spec =
         make ~print:show_cmd
           (let open Gen in
              oneof_weighted
-               [(1, ((pure (fun () -> Create ())) <*> unit));
-               (1, ((pure (fun v -> Push v)) <*> char));
-               (1, (pure Pop));
-               (1, (pure Pop_opt));
-               (1, (pure Top));
-               (1, (pure Top_opt));
-               (1, (pure Clear));
-               (1, (pure Copy));
-               (1, (pure Is_empty))])
+               [(1,
+                  ((with_flag Seq) <$>
+                     ((pure (fun () -> Create ())) <*> unit)));
+               (1, ((with_flag Seq) <$> ((pure (fun v -> Push v)) <*> char)));
+               (1, ((with_flag Seq) <$> (pure Pop)));
+               (1, ((with_flag Seq) <$> (pure Pop_opt)));
+               (1, ((with_flag Seq) <$> (pure Top)));
+               (1, ((with_flag Seq) <$> (pure Top_opt)));
+               (1, ((with_flag Seq) <$> (pure Clear)));
+               (1, ((with_flag Seq) <$> (pure Copy)));
+               (1, ((with_flag Seq) <$> (pure Is_empty)))])
     let next_state cmd__002_ state__003_ =
-      match cmd__002_ with
+      match cmd__002_.raw_cmd with
       | Create () ->
           let t_1__005_ =
             let open ModelElt in
@@ -314,7 +316,7 @@ module Spec =
           let t_9__023_ = t_9__022_ in
           Model.push (Model.drop_n state__003_ 1) t_9__023_
     let precond cmd__066_ state__067_ =
-      match cmd__066_ with
+      match cmd__066_.raw_cmd with
       | Create () -> true
       | Push v -> true
       | Pop -> true
@@ -326,7 +328,7 @@ module Spec =
       | Is_empty -> true
     let postcond _ _ _ = true
     let run cmd__068_ sut__069_ =
-      match cmd__068_ with
+      match cmd__068_.raw_cmd with
       | Create () ->
           Res
             (sut,
@@ -381,7 +383,7 @@ let check_init_state () = ()
 let ortac_show_cmd cmd__088_ models__089_ last__091_ res__090_ =
   let open Spec in
     let open STM in
-      match (cmd__088_, res__090_) with
+      match ((cmd__088_.raw_cmd), res__090_) with
       | (Create (), Res ((SUT, _), t_1)) ->
           let lhs = if last__091_ then "r" else Model.get_name models__089_ 0
           and shift = 1 in
@@ -433,7 +435,7 @@ let ortac_postcond cmd__024_ state__025_ res__026_ =
   let open Spec in
     let open STM in
       let new_state__027_ = lazy (next_state cmd__024_ state__025_) in
-      match (cmd__024_, res__026_) with
+      match ((cmd__024_.raw_cmd), res__026_) with
       | (Create (), Res ((SUT, _), t_1)) -> None
       | (Push v, Res ((Unit, _), _)) -> None
       | (Pop, Res ((Result (Char, Exn), _), v_1)) ->

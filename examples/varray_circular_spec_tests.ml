@@ -130,7 +130,7 @@ module Spec =
     let init_sut = SUT.create 2
     type state = Model.t
     let init_state = Model.create 2 ()
-    type cmd =
+    type raw_cmd =
       | Push_back of char elt 
       | Pop_back 
       | Push_front of char elt 
@@ -153,12 +153,12 @@ module Spec =
       | Seq 
       | Dom0 
       | Dom1 
-    type flagged_cmd = {
+    type cmd = {
       flag: flag ;
-      cmd: cmd }
-    let with_flag flag cmd = { flag; cmd }
+      raw_cmd: raw_cmd }
+    let with_flag flag raw_cmd = { flag; raw_cmd }
     let show_cmd cmd__003_ =
-      match cmd__003_ with
+      match cmd__003_.raw_cmd with
       | Push_back x ->
           Format.asprintf "%s <sut> %a" "push_back"
             (Util.Pp.pp_elt Util.Pp.pp_char true) x
@@ -209,41 +209,59 @@ module Spec =
         make ~print:show_cmd
           (let open Gen in
              oneof_weighted
-               [(1, ((pure (fun x -> Push_back x)) <*> (elt char)));
-               (1, (pure Pop_back));
-               (1, ((pure (fun x_1 -> Push_front x_1)) <*> (elt char)));
-               (1, (pure Pop_front));
+               [(1,
+                  ((with_flag Seq) <$>
+                     ((pure (fun x -> Push_back x)) <*> (elt char))));
+               (1, ((with_flag Seq) <$> (pure Pop_back)));
                (1,
-                 (((pure (fun i_1 x_2 -> Insert_at (i_1, x_2))) <*> int) <*>
-                    (elt char)));
-               (1, ((pure (fun i_2 -> Pop_at i_2)) <*> int));
-               (1, ((pure (fun i_3 -> Delete_at i_3)) <*> int));
-               (1, ((pure (fun i_4 -> Get i_4)) <*> int));
+                 ((with_flag Seq) <$>
+                    ((pure (fun x_1 -> Push_front x_1)) <*> (elt char))));
+               (1, ((with_flag Seq) <$> (pure Pop_front)));
                (1,
-                 (((pure (fun i_5 v -> Set (i_5, v))) <*> int) <*> (elt char)));
-               (1, (pure Length));
+                 ((with_flag Seq) <$>
+                    (((pure (fun i_1 x_2 -> Insert_at (i_1, x_2))) <*> int)
+                       <*> (elt char))));
                (1,
-                 (((pure (fun n x_3 -> Make (n, x_3))) <*> nat_small) <*>
-                    (elt char)));
-               (1, ((pure (fun () -> Empty ())) <*> unit));
-               (1, (pure Is_empty));
-               (1, (pure Append));
+                 ((with_flag Seq) <$>
+                    ((pure (fun i_2 -> Pop_at i_2)) <*> int)));
                (1,
-                 (((pure (fun i_6 n_1 -> Sub (i_6, n_1))) <*> int) <*> int));
-               (1, (pure Copy));
+                 ((with_flag Seq) <$>
+                    ((pure (fun i_3 -> Delete_at i_3)) <*> int)));
                (1,
-                 ((((pure (fun pos len x_4 -> Fill (pos, len, x_4))) <*> int)
-                     <*> int)
-                    <*> (elt char)));
+                 ((with_flag Seq) <$> ((pure (fun i_4 -> Get i_4)) <*> int)));
                (1,
-                 ((((pure
-                       (fun src_pos dst_pos len_1 ->
-                          Blit (src_pos, dst_pos, len_1)))
-                      <*> int)
-                     <*> int)
-                    <*> int))])
+                 ((with_flag Seq) <$>
+                    (((pure (fun i_5 v -> Set (i_5, v))) <*> int) <*>
+                       (elt char))));
+               (1, ((with_flag Seq) <$> (pure Length)));
+               (1,
+                 ((with_flag Seq) <$>
+                    (((pure (fun n x_3 -> Make (n, x_3))) <*> nat_small) <*>
+                       (elt char))));
+               (1,
+                 ((with_flag Seq) <$> ((pure (fun () -> Empty ())) <*> unit)));
+               (1, ((with_flag Seq) <$> (pure Is_empty)));
+               (1, ((with_flag Seq) <$> (pure Append)));
+               (1,
+                 ((with_flag Seq) <$>
+                    (((pure (fun i_6 n_1 -> Sub (i_6, n_1))) <*> int) <*> int)));
+               (1, ((with_flag Seq) <$> (pure Copy)));
+               (1,
+                 ((with_flag Seq) <$>
+                    ((((pure (fun pos len x_4 -> Fill (pos, len, x_4))) <*>
+                         int)
+                        <*> int)
+                       <*> (elt char))));
+               (1,
+                 ((with_flag Seq) <$>
+                    ((((pure
+                          (fun src_pos dst_pos len_1 ->
+                             Blit (src_pos, dst_pos, len_1)))
+                         <*> int)
+                        <*> int)
+                       <*> int)))])
     let next_state cmd__004_ state__005_ =
-      match cmd__004_ with
+      match cmd__004_.raw_cmd with
       | Push_back x ->
           let t_1__006_ = Model.get state__005_ 0 in
           let t_1__007_ =
@@ -1037,7 +1055,7 @@ module Spec =
               src__065_
           else state__005_
     let precond cmd__140_ state__141_ =
-      match cmd__140_ with
+      match cmd__140_.raw_cmd with
       | Push_back x -> true
       | Pop_back -> true
       | Push_front x_1 -> true
@@ -1058,7 +1076,7 @@ module Spec =
       | Blit (src_pos, dst_pos, len_1) -> true
     let postcond _ _ _ = true
     let run cmd__142_ sut__143_ =
-      match cmd__142_ with
+      match cmd__142_.raw_cmd with
       | Push_back x ->
           Res
             (unit,
@@ -1180,7 +1198,7 @@ let check_init_state () = ()
 let ortac_show_cmd cmd__181_ models__182_ last__184_ res__183_ =
   let open Spec in
     let open STM in
-      match (cmd__181_, res__183_) with
+      match ((cmd__181_.raw_cmd), res__183_) with
       | (Push_back x, Res ((Unit, _), _)) ->
           let lhs = if last__184_ then "r" else "_"
           and shift = 0 in
@@ -1303,7 +1321,7 @@ let ortac_postcond cmd__074_ state__075_ res__076_ =
   let open Spec in
     let open STM in
       let new_state__077_ = lazy (next_state cmd__074_ state__075_) in
-      match (cmd__074_, res__076_) with
+      match ((cmd__074_.raw_cmd), res__076_) with
       | (Push_back x, Res ((Unit, _), _)) -> None
       | (Pop_back, Res ((Result (Elt (Char), Exn), _), x_5)) ->
           (match x_5 with

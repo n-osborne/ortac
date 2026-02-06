@@ -88,7 +88,7 @@ module Spec =
     let init_sut = SUT.create 2
     type state = Model.t
     let init_state = Model.create 2 ()
-    type cmd =
+    type raw_cmd =
       | Length 
       | Get of int 
       | Set of int * char 
@@ -105,12 +105,12 @@ module Spec =
       | Seq 
       | Dom0 
       | Dom1 
-    type flagged_cmd = {
+    type cmd = {
       flag: flag ;
-      cmd: cmd }
-    let with_flag flag cmd = { flag; cmd }
+      raw_cmd: raw_cmd }
+    let with_flag flag raw_cmd = { flag; raw_cmd }
     let show_cmd cmd__001_ =
-      match cmd__001_ with
+      match cmd__001_.raw_cmd with
       | Length -> Format.asprintf "%s <sut>" "length"
       | Get i ->
           Format.asprintf "protect (fun () -> %s <sut> %a)" "get"
@@ -144,28 +144,38 @@ module Spec =
         make ~print:show_cmd
           (let open Gen in
              oneof_weighted
-               [(1, (pure Length));
-               (1, ((pure (fun i -> Get i)) <*> int));
+               [(1, ((with_flag Seq) <$> (pure Length)));
+               (1, ((with_flag Seq) <$> ((pure (fun i -> Get i)) <*> int)));
                (1,
-                 (((pure (fun i_1 a_1 -> Set (i_1, a_1))) <*> int) <*> char));
+                 ((with_flag Seq) <$>
+                    (((pure (fun i_1 a_1 -> Set (i_1, a_1))) <*> int) <*>
+                       char)));
                (0,
-                 (((pure (fun i_2 a_2 -> Make (i_2, a_2))) <*> nat_small) <*>
-                    char));
-               (1, (pure Append));
-               (1, (((pure (fun i_3 n -> Sub (i_3, n))) <*> int) <*> int));
-               (1, (pure Copy));
+                 ((with_flag Seq) <$>
+                    (((pure (fun i_2 a_2 -> Make (i_2, a_2))) <*> nat_small)
+                       <*> char)));
+               (1, ((with_flag Seq) <$> (pure Append)));
                (1,
-                 ((((pure (fun pos len x -> Fill (pos, len, x))) <*> int) <*>
-                     int)
-                    <*> char));
-               (1, (pure To_list));
-               (1, ((pure (fun l -> Of_list l)) <*> (list char)));
-               (1, ((pure (fun a_3 -> Mem a_3)) <*> char));
+                 ((with_flag Seq) <$>
+                    (((pure (fun i_3 n -> Sub (i_3, n))) <*> int) <*> int)));
+               (1, ((with_flag Seq) <$> (pure Copy)));
                (1,
-                 ((pure (fun p -> For_all p)) <*>
-                    (fun1 Observable.char QCheck.bool).gen))])
+                 ((with_flag Seq) <$>
+                    ((((pure (fun pos len x -> Fill (pos, len, x))) <*> int)
+                        <*> int)
+                       <*> char)));
+               (1, ((with_flag Seq) <$> (pure To_list)));
+               (1,
+                 ((with_flag Seq) <$>
+                    ((pure (fun l -> Of_list l)) <*> (list char))));
+               (1,
+                 ((with_flag Seq) <$> ((pure (fun a_3 -> Mem a_3)) <*> char)));
+               (1,
+                 ((with_flag Seq) <$>
+                    ((pure (fun p -> For_all p)) <*>
+                       (fun1 Observable.char QCheck.bool).gen)))])
     let next_state cmd__002_ state__003_ =
-      match cmd__002_ with
+      match cmd__002_.raw_cmd with
       | Length ->
           let t_1__004_ = Model.get state__003_ 0 in
           let t_1__005_ = t_1__004_ in
@@ -653,7 +663,7 @@ module Spec =
           let t_12__045_ = t_12__044_ in
           Model.push (Model.drop_n state__003_ 1) t_12__045_
     let precond cmd__089_ state__090_ =
-      match cmd__089_ with
+      match cmd__089_.raw_cmd with
       | Length -> true
       | Get i -> true
       | Set (i_1, a_1) -> true
@@ -668,7 +678,7 @@ module Spec =
       | For_all p -> true
     let postcond _ _ _ = true
     let run cmd__091_ sut__092_ =
-      match cmd__091_ with
+      match cmd__091_.raw_cmd with
       | Length ->
           Res
             (int,
@@ -750,7 +760,7 @@ let check_init_state () = ()
 let ortac_show_cmd cmd__117_ models__118_ last__120_ res__119_ =
   let open Spec in
     let open STM in
-      match (cmd__117_, res__119_) with
+      match ((cmd__117_.raw_cmd), res__119_) with
       | (Length, Res ((Int, _), _)) ->
           let lhs = if last__120_ then "r" else "_"
           and shift = 0 in
@@ -835,7 +845,7 @@ let ortac_postcond cmd__046_ state__047_ res__048_ =
   let open Spec in
     let open STM in
       let new_state__049_ = lazy (next_state cmd__046_ state__047_) in
-      match (cmd__046_, res__048_) with
+      match ((cmd__046_.raw_cmd), res__048_) with
       | (Length, Res ((Int, _), i_5)) ->
           if
             let t_old__052_ = Model.get state__047_ 0

@@ -369,9 +369,11 @@ let exp_of_core_type ?(use_small = false) inst typ =
 
 let exp_of_ident id = pexp_ident (lident (str_of_ident id))
 
-(* Output a generator for one particular cmd by
-   - a capitalized function constructor, e.g., [show] to [fun x y z -> Show (x,y,z)]
-   - a list of generated arguments, strung together with [<*>], aka Gen.combine *)
+(* Output a generator for one particular cmd wrapped in a [flagged_cmd] record
+   by
+   - a capitalized function constructor, e.g., [show] to
+     [fun x y z -> Show (x,y,z)]
+   - a list of generated arguments, strung together with [<*>], aka Gen.app *)
 let arb_cmd_case config value =
   let open Reserr in
   let is_create = value.sut_vars = [] && Cfg.does_return_sut config value.ty in
@@ -402,8 +404,10 @@ let arb_cmd_case config value =
       (fun (ty, _) -> exp_of_core_type ~use_small:is_create value.inst ty)
       value.args
   in
-  let app l r = pexp_apply (evar "( <*> )") [ (Nolabel, l); (Nolabel, r) ] in
-  List.fold_left app fun_cstr <$> gen_args
+  let app l r = pexp_apply (evar "( <*> )") [ (Nolabel, l); (Nolabel, r) ]
+  and map l r = pexp_apply (evar "( <$> )") [ (Nolabel, l); (Nolabel, r) ] in
+  map (pexp_apply (evar "with_flag") [ (Nolabel, evar "Seq") ])
+  <$> (List.fold_left app fun_cstr <$> gen_args)
 
 type which = Gen | Seq | Dom0 | Dom1
 
@@ -570,7 +574,7 @@ let run config ir =
   let sut_name = gen_symbol ~prefix:"sut" () in
   let open Reserr in
   let* cases = promote_map (run_case config sut_name) ir.values in
-  let body = pexp_match (evar cmd_name) cases in
+  let body = pexp_match (pexp_field (evar cmd_name) (lident "raw_cmd")) cases in
   let pat = pvar "run" in
   let expr = efun [ (Nolabel, pvar cmd_name); (Nolabel, pvar sut_name) ] body in
   pstr_value Nonrecursive [ value_binding ~pat ~expr ] |> ok
@@ -728,7 +732,7 @@ let next_state config ir =
       ir.values
   in
   let idx, cases = List.split idx_cases in
-  let body = pexp_match (evar cmd_name) cases in
+  let body = pexp_match (pexp_field (evar cmd_name) (lident "raw_cmd")) cases in
   let pat = pvar "next_state" in
   let expr =
     efun [ (Nolabel, pvar cmd_name); (Nolabel, pvar state_name) ] body
@@ -764,7 +768,7 @@ let precond config ir =
   let* cases =
     promote_map (precond_case config ir.state state_ident) ir.values
   in
-  let body = pexp_match (evar cmd_name) cases in
+  let body = pexp_match (pexp_field (evar cmd_name) (lident "raw_cmd")) cases in
   let pat = pvar "precond" in
   let expr =
     efun [ (Nolabel, pvar cmd_name); (Nolabel, pvar state_name) ] body
@@ -1109,7 +1113,10 @@ let postcond config idx ir =
       Ast_helper.(Opn.mk (Mod.ident (lident "Spec")))
       (pexp_open
          Ast_helper.(Opn.mk (Mod.ident (lident "STM")))
-         (pexp_match (pexp_tuple [ evar cmd_name; evar res_name ]) cases
+         (pexp_match
+            (pexp_tuple
+               [ pexp_field (evar cmd_name) (lident "raw_cmd"); evar res_name ])
+            cases
          |> new_state_let))
   in
   let pat = pvar "ortac_postcond" in
@@ -1139,12 +1146,46 @@ let cmd_constructor value =
   in
   constructor_declaration ~name ~args:(Pcstr_tuple args) ~res:None
 
-let cmd_type ir =
+let raw_cmd_type ir =
   let constructors = List.map cmd_constructor ir.values in
   let td =
-    type_declaration ~name:(noloc "cmd") ~params:[] ~cstrs:[]
+    type_declaration ~name:(noloc "raw_cmd") ~params:[] ~cstrs:[]
       ~kind:(Ptype_variant constructors) ~private_:Public ~manifest:None
   in
+  pstr_type Recursive [ td ]
+
+let flag_type =
+  let constructors =
+    let mk_constructor str =
+      constructor_declaration ~name:(noloc str) ~args:(Pcstr_tuple []) ~res:None
+    in
+    List.map mk_constructor [ "Seq"; "Dom0"; "Dom1" ]
+  in
+  let name = noloc "flag"
+  and params = []
+  and cstrs = []
+  and kind = Ptype_variant constructors
+  and private_ = Public
+  and manifest = None in
+  let td = type_declaration ~name ~params ~cstrs ~kind ~private_ ~manifest in
+  pstr_type Recursive [ td ]
+
+let cmd_type =
+  let name = noloc "cmd"
+  and params = []
+  and cstrs = []
+  and kind =
+    let mutable_ = Immutable in
+    Ptype_record
+      [
+        label_declaration ~name:(noloc "flag") ~mutable_
+          ~type_:(ptyp_constr (lident "flag") []);
+        label_declaration ~name:(noloc "raw_cmd") ~mutable_
+          ~type_:(ptyp_constr (lident "raw_cmd") []);
+      ]
+  and private_ = Public
+  and manifest = None in
+  let td = type_declaration ~name ~params ~cstrs ~kind ~private_ ~manifest in
   pstr_type Recursive [ td ]
 
 let pp_cmd_case config value =
@@ -1209,54 +1250,21 @@ let cmd_show config ir =
   let cmd_name = gen_symbol ~prefix:"cmd" () in
   let open Reserr in
   let* cases = promote_map (pp_cmd_case config) ir.values in
-  let body = pexp_match (evar cmd_name) cases in
+  let body = pexp_match (pexp_field (evar cmd_name) (lident "raw_cmd")) cases in
   let pat = pvar "show_cmd" in
   let expr = efun [ (Nolabel, pvar cmd_name) ] body in
   pstr_value Nonrecursive [ value_binding ~pat ~expr ] |> ok
-
-let flag_type =
-  let constructors =
-    let mk_constructor str =
-      constructor_declaration ~name:(noloc str) ~args:(Pcstr_tuple []) ~res:None
-    in
-    List.map mk_constructor [ "Seq"; "Dom0"; "Dom1" ]
-  in
-  let name = noloc "flag"
-  and params = []
-  and cstrs = []
-  and kind = Ptype_variant constructors
-  and private_ = Public
-  and manifest = None in
-  let td = type_declaration ~name ~params ~cstrs ~kind ~private_ ~manifest in
-  pstr_type Recursive [ td ]
-
-let flagged_cmd_type =
-  let name = noloc "flagged_cmd"
-  and params = []
-  and cstrs = []
-  and kind =
-    let mutable_ = Immutable in
-    Ptype_record
-      [
-        label_declaration ~name:(noloc "flag") ~mutable_
-          ~type_:(ptyp_constr (lident "flag") []);
-        label_declaration ~name:(noloc "cmd") ~mutable_
-          ~type_:(ptyp_constr (lident "cmd") []);
-      ]
-  and private_ = Public
-  and manifest = None in
-  let td = type_declaration ~name ~params ~cstrs ~kind ~private_ ~manifest in
-  pstr_type Recursive [ td ]
 
 let with_flag =
   let pat = ppat_var @@ noloc "with_flag"
   and expr =
     efun
       [
-        (Nolabel, ppat_var @@ noloc "flag"); (Nolabel, ppat_var @@ noloc "cmd");
+        (Nolabel, ppat_var @@ noloc "flag");
+        (Nolabel, ppat_var @@ noloc "raw_cmd");
       ]
       (pexp_record
-         [ (lident "flag", evar "flag"); (lident "cmd", evar "cmd") ]
+         [ (lident "flag", evar "flag"); (lident "raw_cmd", evar "raw_cmd") ]
          None)
   in
   let value_bindings = [ value_binding ~pat ~expr ] in
@@ -1776,7 +1784,10 @@ let ortac_cmd_show config ir =
   in
   let cases = cases @ [ default_case ] in
   let match_expr =
-    pexp_match (pexp_tuple [ evar cmd_name; evar res_name ]) cases
+    pexp_match
+      (pexp_tuple
+         [ pexp_field (evar cmd_name) (lident "raw_cmd"); evar res_name ])
+      cases
   in
   let body =
     pexp_open
@@ -1811,7 +1822,7 @@ let stm config ir =
   let* ghost_types = ghost_types config ir.ghost_types in
   let* config, ghost_functions = ghost_functions config ir.ghost_functions in
   let warn = [%stri [@@@ocaml.warning "-26-27-69-32-34-37-38"]] in
-  let cmd = cmd_type ir in
+  let raw_cmd_type = raw_cmd_type ir in
   let* cmd_show = cmd_show config ir in
   let* idx, next_state = next_state config ir in
   let* postcond = postcond config idx ir in
@@ -1851,9 +1862,9 @@ let stm config ir =
       @ sut_defs
       @ state_defs
       @ [
-          cmd;
+          raw_cmd_type;
           flag_type;
-          flagged_cmd_type;
+          cmd_type;
           with_flag;
           cmd_show;
           cleanup;
