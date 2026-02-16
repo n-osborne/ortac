@@ -11,16 +11,23 @@ model-based state-machine testing of a module, building up the model from its
 In order to be able to generate the STM module, the plugin will need five
 pieces of information:
 
-{ol {- What type do we want to test? This is called {e system under test} or {e
-       SUT} by QCheck-STM.}
+{ol {- What type do we want to test? This is called {e system under test}, or {e
+       SUT} for short, by QCheck-STM.}
     {- How to generate a value of this type? The [init_sut] function.}
-    {- What is the model of this type? This is what is taken as the {e state} by QCheck-STM.}
+    {- What is the model of this type? This is what is taken as the {e state}
+    by QCheck-STM.}
     {- How to generate the said model? The [init_state] function.}
     {- How does the model change when calling a function? The [next_state] function.}}
 
 Answering these five questions is done part in a configuration module and
 part in the Gospel specifications that we will have to write in a specific
 style.
+
+The generated tests will also include checks for all the pre and
+postconditions present in the Gospel specification, given that they are
+written using the
+{{:https://github.com/ocaml-gospel/ortac?tab=readme-ov-file#supported-gospel
+}supported subset of Gospel}.
 
 This tutorial aims at showing how to write Gospel specifications for our
 modules in order to be able to automatically generate the QCheck-STM tests
@@ -55,8 +62,8 @@ the type of the [state].
 
 The second item is the function used for generating the inital value for [SUT].
 Here again, this item will bring two needed pieces of information: how to build
-the initial value of [SUT] and the corresponding [state]. This is the role of
-the [make] function along with its specification.
+the initial value of [SUT] and the corresponding [state]. Here, this is the
+role of the [make] function along with its specification.
 
 {@ocaml file=example.mli,part=make[
 val make : int -> 'a -> 'a t
@@ -70,10 +77,8 @@ Obviously, the function should return a value of type [SUT]. But more
 importantly, the specification has to give a value to each of the models that
 were given to the type [SUT] in its specification. Here, this means we need to
 give a value to [t.size] and to [t.contents]. The [checks] clause is part of
-the Gospel specification of the function, but it won't be used by the plugin to
-generate any code. We can give more information that the plugin needs, for
-example if we are also using another tool based on Gospel specifications. The
-plugin will simply ignore them.
+the Gospel specification of the function, but it won't be used to initialize
+the state.
 
 Now that Ortac/QCheck-STM is able to generate an initial value for the type
 under test and its model, we can turn our attention to the functions we will
@@ -90,32 +95,32 @@ val set : 'a t -> int -> 'a -> unit
 
 The most important purpose of the specifications (in the context of this
 tutorial) is to bring the last piece of information. That is to answer the
-question about how the model changes when calling the specified function.
+question: how does the model change when calling the specified function.
 This is done in two steps.
 
 First, we have to declare which of the model's field are modified in the
 [modifies] clause. Let's note that if, like in the case of the [set] function,
 the function is returning [unit], it is a Gospel error to not give any
-[modifies] clause. But Gospel lets us write [modifies ()] in order to express
-the fact that the function is modifying something that is not in the model of
-any of the argument. However, Ortac/QCheck-STM will read the [modifies] clauses
-(if any) in order to determine which model's fields are modified when the
-function is called. The model's fields that don't appear in any of the
-[modifies] clauses will be considered as not modified.
+[modifies] clause. Ortac/QCheck-STM will read the [modifies] clauses (if any)
+in order to determine which model's fields are modified when the function is
+called. The model's fields that don't appear in any of the [modifies] clauses
+will be considered as not modified.
 
 Then, the plugin will look at the [ensures] clauses (the postconditions) in
 order to find one clause per modified field that expresses how to compute the
 modification. For now, the tool is not very smart. The basic rule of thumb is
-that we need to write down a computable description of the new model's field as
-a function of the old one. This will often mean that we need to write stronger
-postconditions that what would be necessary in another context. If the plugin
-can't find any suitable [ensures] clause, it will raise a warning and skip the
-function for test.
+that we need to write down a computable definition of the new model's field.
+Meaning the postcondition should be of the form: [new_field = expr] where
+[expr] should be computable and can contains mentions of the old value of the
+field. This will often mean that we need to write stronger postconditions that
+what would be necessary in another context. If the plugin can't find any
+suitable [ensures] clause, it will raise a warning and skip the function for
+test.
 
-We can see again the [checks] clause. This time, as the function is a
-candidate for test, the [checks] clause will be used by the tool to check that
-if the condition of the clause is not respected, the function raises the
-[Invalid_arg] exception.
+We can see again the [checks] clause. This time, as Ortac/QCheck-STM is looking
+at the function as a candidate for test, the [checks] clause will be used by
+the tool to check that if the condition of the clause is not respected, the
+function raises the [Invalid_arg] exception.
 
 Now that the [set] function is ready to be tested, let's turn our attention to
 another example. Here is the example of the [get] function along with its Gospel
@@ -172,7 +177,7 @@ $ ortac qcheck-stm example.mli example_config.ml -o stm_example.ml
 
 The other information we can put in the configuration file are:
 
-{ul {li custom [QCheck] generators in a [Gen] module}
+{ul {li custom data [QCheck] generators in a [Gen] module}
     {li custom [STM] printers in a [Pp] module}
     {li custom [STM.ty] extensions and its functional constructors in a [Ty]
     module}
@@ -183,8 +188,8 @@ The other information we can put in the configuration file are:
     {li custom [gen_cmd], [gen_cmd_seq], [gen_cmd_dom0] and [gen_cmd_dom1]
     definition }}
 
-These additional information are mostly necessary when the tested library
-exposes other types than the one used as SUT.
+The three first additional pieces of information are necessary when the tested
+library exposes other types than the one used as SUT.
 
 The [Gen] module should contain a [QCheck.Gen.t] for each of these types. It is
 also possible to shadow already defined generators. One use case for this last
@@ -204,6 +209,9 @@ https://ocaml-multicore.github.io/multicoretests/dev/qcheck-multicoretests-util/
 The [Ty] module should contain an [STM.ty] extension and a corresponding
 [STM.ty_show] smart constructor for each of these types. An ['a STM.ty_show] is
 a pair of an ['a ty] value and an ['a -> string] function.
+
+The other pieces of information are used to gain some control over program
+generation.
 
 The [Weights*] modules should contain value declarations of the form [let
 <value_name> = <int literal>] where [<value_name>] is the name of a function
@@ -234,7 +242,8 @@ provided.
 The main reason one would want to write a custom command generator is to take
 advantage of the fact that the command generator in QCheck-STM is parameterized
 by the model of the SUT, {e aka} the state. Ortac is not smart enough to take
-opportunity of this possibility in the generated command generators.
+opportunity of this possibility in the automatically generated command
+generators.
 
 Now, in order to manipulate the state we need to know a bit of the internals of
 how it is represented by Ortac/QCheck-STM.
@@ -379,6 +388,10 @@ like the following:
  (action
   (run %{test} --verbose)))
 ]}
+
+It is advised to use the
+{{!https://github.com/ocaml-gospel/ortac/tree/main/plugins/dune-rules
+}Ortac/Dune plugin} to integrate Ortac/QCheck-STM with the Dune build system.
 
 {1 Warning system}
 
